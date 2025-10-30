@@ -1,0 +1,3090 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Sonzerasso</title>
+    <!-- Carrega o Tailwind CSS para estilização rápida e responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Adiciona Font Awesome para os ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" xintegrity="sha512-DTOQO9RWCH3ppGqcWaEA1BIZOC6xxalwEsw9c2QQeAIftl+Vegovlnee1c9QX4TctnWMn13TZye+giMm8e2LwA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&display=swap');
+        :root {
+            --cor-primaria: #1a1a1a;
+            --cor-secundaria: #2a2a2a;
+            --cor-texto: #f0f0f0;
+            --cor-destaque: #ffaa00;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--cor-secundaria);
+            color: var(--cor-texto);
+        }
+        .text-theme {
+            color: var(--cor-texto);
+        }
+        .shopping-list-item {
+            @apply flex items-center justify-between p-3 border-b border-gray-200;
+        }
+        .shopping-list-item:last-child {
+            @apply border-b-0;
+        }
+        .editable-item {
+            @apply outline-none focus:ring-2 focus:ring-indigo-500 rounded-md;
+        }
+        .item-checked {
+            @apply bg-green-200;
+        }
+        /* Estilos para a grade de botões arrastáveis */
+        #button-grid-container {
+            display: flex;
+            flex-direction: column; /* Organiza os apps em uma coluna */
+            align-items: flex-start; /* Alinha os apps à esquerda */
+            gap: 16px; /* Espaçamento entre os apps */
+        }
+        .app-container {
+            display: flex;
+            flex-direction: row; /* Ícone e texto lado a lado */
+            align-items: center; /* Alinha verticalmente o ícone e o texto */
+            width: 100%; /* Ocupa a largura total */
+            gap: 16px; /* Espaço entre o ícone e o texto */
+        }
+        #button-grid-container .grid-item {
+            background-color: #333;
+            width: 56px;
+            height: 56px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease-in-out;
+            box-shadow: 0 6px 10px -1px rgba(0, 0, 0, 0.15), 0 4px 6px -2px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+        }
+        /* NOVO: Estilo para o ícone do app selecionado */
+        #button-grid-container .grid-item.selected {
+            transform: scale(1.15);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        }
+        .grid-item-icon {
+            font-size: 1.5rem;
+            color: white;
+        }
+        .grid-item-label {
+            @apply font-semibold text-base text-left; /* Cor removida, herdará de .text-theme */
+            flex-grow: 1; /* Permite que o texto ocupe o espaço restante */
+            margin-top: 0;
+        }
+        .app-container.dragging {
+            opacity: 0.7;
+            border: 2px solid var(--cor-destaque);
+            padding: 8px;
+            border-radius: 12px;
+            background-color: rgba(0, 0, 0, 0.1);
+        }
+        /* Estilos para as Notas */
+        .note-item {
+            background-color: #FEF3C7;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            padding: 15px;
+            @apply rounded-lg aspect-square flex flex-col justify-between transition-transform duration-200 cursor-pointer;
+        }
+        .note-item:hover {
+            @apply scale-105;
+        }
+        .note-title {
+             @apply font-bold text-lg truncate mb-2;
+             color: var(--text-primary);
+        }
+        .note-content-preview {
+            min-width: 0;
+            word-wrap: break-word;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 5; /* Limita o texto a 5 linhas */
+            -webkit-box-orient: vertical;
+            text-overflow: ellipsis;
+            @apply flex-grow text-left;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            color: var(--text-primary);
+        }
+        .note-actions {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            align-items: center;
+            padding-top: 0.5rem;
+        }
+        .note-button {
+            @apply cursor-pointer;
+        }
+        .icon-picker-item {
+            @apply cursor-pointer text-2xl text-gray-600 p-2 rounded-md hover:bg-gray-200 text-center;
+        }
+        .icon-picker-item.selected {
+            @apply bg-indigo-500 text-white;
+        }
+        /* Estilos para a lista de músicas */
+        .music-item {
+            @apply flex items-center p-3 border-b border-gray-200 cursor-pointer hover:bg-gray-200 transition-colors duration-200;
+            margin-bottom: 16px; /* Aumenta o espaço entre os itens */
+        }
+        .music-item.selected-for-folder {
+            @apply bg-orange-300;
+        }
+        .music-item:last-child {
+            @apply border-b-0;
+        }
+        .music-info {
+            @apply flex-grow;
+        }
+        .music-artist-display {
+            @apply font-bold;
+        }
+        .music-album-display {
+            @apply italic text-gray-500; /* Mantém um cinza mais claro para diferenciação */
+        }
+        .music-title-display {
+            @apply text-sm;
+        }
+
+        /* Estilos para o player de música (a visibilidade agora é controlada por 'hidden') */
+        /* Estilos para o App de Receitas */
+        .recipe-item {
+            @apply bg-white rounded-lg shadow-md overflow-hidden transition-transform duration-200 cursor-pointer flex flex-col;
+        }
+        .recipe-item:hover {
+            @apply scale-105 shadow-xl;
+        }
+        .recipe-image {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            @apply bg-gray-200;
+        }
+        .recipe-content-preview {
+            min-width: 0;
+            word-wrap: break-word;
+            overflow: hidden;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            text-overflow: ellipsis;
+            @apply text-sm;
+            color: var(--text-primary);
+        }
+        .image-preview-item {
+            @apply relative w-24 h-24 rounded-md overflow-hidden;
+        }
+        .image-preview-item img {
+            @apply w-full h-full object-cover;
+        }
+        .remove-image-btn {
+            @apply absolute top-1 right-1 bg-red-600 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold cursor-pointer;
+        }
+        .noselect {
+            -webkit-touch-callout: none; /* iOS Safari */
+            -webkit-user-select: none;   /* Safari */
+            -khtml-user-select: none;    /* Konqueror HTML */
+            -moz-user-select: none;      /* Old versions of Firefox */
+            -ms-user-select: none;       /* Internet Explorer/Edge */
+            user-select: none;           /* Non-prefixed version, currently supported by Chrome, Edge, Opera and Firefox */
+        }
+        button {
+            -webkit-tap-highlight-color: transparent;
+        }
+        /* Correção para remover a borda de foco/toque no botão de perfil */
+        #profile-button:focus, #profile-button:active {
+            outline: none !important;
+            box-shadow: none !important;
+            -webkit-tap-highlight-color: transparent !important;
+        }
+
+        /* Estilos GLOBAIS para a barra de rolagem (Padronizado) */
+        html {
+            scrollbar-width: auto; /* Para Firefox */
+            scrollbar-color: var(--cor-destaque) var(--cor-secundaria); /* Para Firefox */
+        }
+
+        /* Para Chrome, Safari e Edge (WebKit) */
+        ::-webkit-scrollbar {
+            width: 40px !important;
+        }
+
+        ::-webkit-scrollbar-track {
+            background-color: var(--cor-secundaria);
+            border-radius: 0;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background-color: var(--cor-destaque);
+            border-radius: 0;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background-color: var(--cor-destaque);
+            filter: brightness(1.2);
+        }
+
+        /* O container do Explorar agora herda os estilos globais */
+        #explore-content-container {
+            overflow-y: auto;
+        }
+
+        /* Torna o container de controles do player responsivo */
+        #fullscreen-controls-container {
+            flex-wrap: wrap;
+            gap: 1rem; /* Adiciona um espaçamento consistente */
+        }
+
+        /* Estilos para o Toggle Switch */
+        input:checked ~ .dot {
+            transform: translateX(100%);
+            background-color: #ffffff;
+        }
+        /* Estilos para os novos botões do player */
+        .player-button {
+            background-color: #ffffff;
+            color: #000000;
+            border-radius: 9999px; /* Efeito de botão redondo */
+            box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease-in-out;
+        }
+        /* Estilos Unificados para Sliders */
+        .custom-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px; /* Altura do trilho */
+            background: #4a4a4a; /* Cor de fundo do trilho */
+            border-radius: 5px;
+            outline: none;
+            transition: opacity .2s;
+        }
+
+        /* Thumb (bolinha) para Webkit (Chrome, Safari) */
+        .custom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px; /* Largura da bolinha */
+            height: 20px; /* Altura da bolinha */
+            background: var(--cor-destaque); /* Cor da bolinha */
+            cursor: pointer;
+            border-radius: 50%; /* Faz a bolinha ser redonda */
+        }
+
+        /* Thumb (bolinha) para Firefox */
+        .custom-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: var(--cor-destaque);
+            cursor: pointer;
+            border-radius: 50%;
+            border: none; /* Firefox adiciona uma borda por padrão */
+        }
+    </style>
+</head>
+<body>
+    <!-- Novo container principal para centralizar todos os elementos -->
+    <div id="main-container" class="flex items-center justify-center min-h-screen p-4 overflow-y-auto">
+        <!-- Conteúdo do Login -->
+        <div id="app" class="w-full max-w-md">
+            <!-- Formulário de Login Padrão -->
+            <div id="login-form-container" class="w-full max-w-xs mx-auto">
+                <div class="space-y-4">
+                    <h1 class="text-5xl font-black text-center" style="color: var(--cor-destaque);">Sonzerasso</h1>
+
+                    <!-- Campo do Email -->
+                    <div class="w-full">
+                        <label for="email" class="block text-sm font-medium text-theme">Email</label>
+                        <input type="email" id="email" autocomplete="email" class="mt-1 block w-full px-4 py-3 border rounded-md shadow-sm text-lg" style="background-color: #ffffff; border-color: var(--cor-destaque); color: #000000;">
+                    </div>
+
+                    <!-- Campo da Senha -->
+                    <div class="w-full">
+                        <label for="password" class="block text-sm font-medium text-theme">Senha</label>
+                        <input type="password" id="password" autocomplete="current-password" class="mt-1 block w-full px-4 py-3 border rounded-md shadow-sm text-lg" style="background-color: #ffffff; border-color: var(--cor-destaque); color: #000000;">
+                    </div>
+
+                    <!-- Botão de Entrar -->
+                    <button id="login-button" class="w-full px-4 py-3 text-black font-bold rounded-md shadow-lg hover:shadow-xl focus:outline-none transition-all text-lg hover:brightness-90" style="background-color: var(--cor-destaque);">
+                        Entrar
+                    </button>
+
+                    <!-- Botão de redefinir senha (agora como texto) -->
+                    <button id="reset-password-button" class="!mt-2 w-full text-sm text-center text-theme hover:underline focus:outline-none transition-colors duration-200">
+                        Esqueceu a senha?
+                    </button>
+
+                    <!-- Novo link para cadastro -->
+                    <p class="!mt-4 text-center text-sm text-theme">
+                        Não tem uma conta?
+                        <button id="show-signup-button" class="font-semibold hover:underline" style="color: var(--cor-destaque);">
+                            Cadastre-se
+                        </button>
+                    </p>
+                </div>
+            </div>
+
+            <!-- NOVO: Formulário de Cadastro (inicialmente escondido) -->
+            <div id="signup-form-container" class="hidden w-full max-w-xs mx-auto">
+                <div class="space-y-4">
+                    <h1 class="text-5xl font-black text-center" style="color: var(--cor-destaque);">Criar Conta</h1>
+
+                    <!-- Campo do Email -->
+                    <div class="w-full">
+                        <label for="signup-email" class="block text-sm font-medium text-theme">Email</label>
+                        <input type="email" id="signup-email" autocomplete="email" class="mt-1 block w-full px-4 py-3 border rounded-md shadow-sm text-lg" style="background-color: #ffffff; border-color: var(--cor-destaque); color: #000000;">
+                    </div>
+
+                    <!-- Campo da Senha -->
+                    <div class="w-full">
+                        <label for="signup-password" class="block text-sm font-medium text-theme">Senha</label>
+                        <input type="password" id="signup-password" autocomplete="new-password" class="mt-1 block w-full px-4 py-3 border rounded-md shadow-sm text-lg" style="background-color: #ffffff; border-color: var(--cor-destaque); color: #000000;">
+                    </div>
+
+                    <!-- Campo de Confirmar Senha -->
+                    <div class="w-full">
+                        <label for="signup-confirm-password" class="block text-sm font-medium text-theme">Confirmar Senha</label>
+                        <input type="password" id="signup-confirm-password" autocomplete="new-password" class="mt-1 block w-full px-4 py-3 border rounded-md shadow-sm text-lg" style="background-color: #ffffff; border-color: var(--cor-destaque); color: #000000;">
+                    </div>
+
+                    <!-- Botão de Cadastrar -->
+                    <button id="signup-button" class="w-full px-4 py-3 text-black font-bold rounded-md shadow-lg hover:shadow-xl focus:outline-none transition-all text-lg hover:brightness-90" style="background-color: var(--cor-destaque);">
+                        Cadastrar
+                    </button>
+
+                    <!-- Link para voltar ao Login -->
+                    <p class="!mt-4 text-center text-sm text-theme">
+                        Já tem uma conta?
+                        <button id="show-login-button" class="font-semibold hover:underline" style="color: var(--cor-destaque);">
+                            Entrar
+                        </button>
+                    </p>
+                </div>
+            </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- NOVO: Modal para Trocar Senha -->
+    <div id="change-password-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-[100]">
+        <div id="new-password-container" class="p-6 rounded-2xl shadow-2xl max-w-sm w-full space-y-4" style="background-color: var(--cor-primaria);">
+            <div class="flex justify-between items-center">
+                <h3 class="text-2xl font-bold text-theme">Trocar Senha</h3>
+                <button id="close-change-password-modal" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="relative">
+                <label for="new-password" class="block text-sm font-medium text-theme text-left">Nova Senha</label>
+                <input type="password" id="new-password" class="mt-1 block w-full px-4 py-3 border rounded-md shadow-sm text-lg" style="background-color: var(--cor-secundaria); border-color: var(--cor-destaque); color: var(--cor-texto);">
+            </div>
+            <div class="relative">
+                <label for="confirm-password" class="block text-sm font-medium text-theme text-left">Confirmar Senha</label>
+                <input type="password" id="confirm-password" class="mt-1 block w-full px-4 py-3 border rounded-md shadow-sm text-lg" style="background-color: #ffffff; border-color: var(--cor-destaque); color: #000000;">
+            </div>
+
+            <div class="flex justify-between space-x-4 pt-2">
+                <button id="cancel-change-password-button" class="w-full px-4 py-3 font-semibold rounded-md hover:brightness-90" style="background-color: var(--cor-secundaria); color: var(--cor-texto);">Cancelar</button>
+                <button id="update-password-button" class="w-full px-4 py-3 text-black font-bold rounded-md" style="background-color: var(--cor-destaque);">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Nova tela do usuário logado -->
+    <div id="logged-in-app" class="hidden h-screen overflow-hidden">
+        <!-- Container fixo no canto superior esquerdo -->
+        <div id="main-header" class="fixed top-0 left-0 right-0 p-4 shadow-lg z-40 h-24 flex items-center" style="background-color: var(--cor-primaria);">
+            <div>
+                <h1 class="text-3xl font-black" style="color: var(--cor-destaque);">Sonzerasso</h1>
+                <p id="music-count-display" class="text-xs text-gray-400"></p>
+            </div>
+            <!-- Botões de Ação -->
+            <div class="absolute right-4 top-1/2 -translate-y-1/2 flex items-center space-x-2">
+                <button id="add-app-button" class="w-12 h-12 flex items-center justify-center rounded-full text-white shadow-xl hover:scale-110 hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-offset-2 transform transition-all duration-300 ease-in-out" style="background-color: transparent;">
+                    <i class="fas fa-folder-plus text-2xl"></i>
+                </button>
+                <button id="new-profile-button" class="w-12 h-12 flex items-center justify-center rounded-full text-white shadow-xl hover:scale-110 hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-offset-2 transform transition-all duration-300 ease-in-out" style="background-color: transparent;">
+                    <i class="fas fa-user text-2xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal de Ações do Aplicativo -->
+        <div id="app-action-bar" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+            <div class="p-6 rounded-2xl shadow-2xl max-w-xs w-full flex flex-col space-y-4" style="background-color: var(--cor-primaria);">
+                <button id="open-app-button" class="w-full px-4 py-3 text-white font-bold rounded-md shadow-lg hover:shadow-xl transition-all text-lg bg-blue-500 hover:bg-blue-600">
+                    Abrir
+                </button>
+                <button id="edit-app-button" class="w-full px-4 py-3 text-white font-bold rounded-md shadow-lg hover:shadow-xl transition-all text-lg bg-yellow-500 hover:bg-yellow-600">
+                    Editar
+                </button>
+                <button id="delete-app-button" class="w-full px-4 py-3 text-white font-bold rounded-md shadow-lg hover:shadow-xl transition-all text-lg bg-red-500 hover:bg-red-600">
+                    <span id="delete-app-text">Remover</span>
+                </button>
+                <button id="close-app-modal-button" class="w-full px-4 py-3 font-semibold rounded-md transition-colors mt-2 hover:brightness-90" style="background-color: var(--cor-secundaria); color: var(--cor-texto);">
+                    Fechar
+                </button>
+            </div>
+        </div>
+
+        <!-- Grade de botões arrastáveis -->
+        <div id="button-grid-container" class="fixed top-24 inset-x-0 bottom-24 p-4 transition-all duration-300 overflow-y-auto"> <!-- Ajustado para a barra de navegação + player -->
+            <!-- Aplicativos serão injetados aqui -->
+        </div>
+
+        <!-- BOTÃO FLUTUANTE (FAB) DE EXPLORAR -->
+        <div class="fixed bottom-28 right-6 z-40">
+            <button id="fab-explore" class="w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-200 focus:outline-none" style="background-color: var(--cor-destaque);" title="Explorar">
+                <i class="fas fa-search text-2xl text-black"></i>
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal para opções do perfil -->
+    <div id="profile-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center space-y-4" style="background-color: var(--cor-primaria);">
+            <div class="flex justify-end">
+                <button id="close-profile-modal" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <h3 class="text-2xl font-bold text-theme">Opções do Perfil</h3>
+            <button id="change-password-button" class="w-full px-4 py-3 font-semibold rounded-md transition-colors hover:brightness-90" style="background-color: var(--cor-secundaria); color: var(--cor-texto);">
+                Trocar Senha
+            </button>
+
+            <!-- Toggle Switch para Pular Música Automaticamente -->
+            <div class="flex items-center justify-between pt-2">
+                <span class="text-sm font-medium text-left text-theme">Pular música se não carregar</span>
+                <label for="auto-skip-toggle" class="flex items-center cursor-pointer">
+                    <div class="relative">
+                        <input type="checkbox" id="auto-skip-toggle" class="sr-only">
+                        <div class="block bg-gray-600 w-14 h-8 rounded-full"></div>
+                        <div class="dot absolute left-1 top-1 bg-white w-6 h-6 rounded-full transition"></div>
+                    </div>
+                </label>
+            </div>
+
+            <button id="logout-button" class="w-full px-4 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors">
+                Sair
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal para confirmação de redefinição de senha -->
+    <div id="reset-password-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="p-6 rounded-2xl shadow-2xl max-w-sm text-center space-y-4" style="background-color: var(--cor-primaria);">
+            <h3 class="text-xl font-bold text-theme">Verifique seu Email</h3>
+            <p class="text-theme">Um link para redefinição de senha foi enviado para <span id="reset-email-display" class="font-semibold" style="color: var(--cor-destaque);"></span>. Siga as instruções para criar uma nova senha.</p>
+            <button id="close-modal-button" class="px-6 py-2 text-black font-semibold rounded-md hover:brightness-90" style="background-color: var(--cor-destaque);">OK</button>
+        </div>
+    </div>
+
+    <!-- Novo Modal de Mensagem de Espera -->
+    <div id="wait-message-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center space-y-4" style="background-color: var(--cor-primaria);">
+            <h3 class="text-xl font-bold text-theme">Aguarde</h3>
+            <p class="text-theme">É necessário aguardar para enviar outro e-mail. Por favor, aguarde <span id="wait-time" class="font-semibold" style="color: var(--cor-destaque);"></span> segundos.</p>
+            <button id="close-wait-modal" class="px-6 py-2 text-black font-semibold rounded-md hover:brightness-90" style="background-color: var(--cor-destaque);">OK</button>
+        </div>
+    </div>
+
+    <!-- Modal para confirmação de exclusão -->
+    <div id="delete-confirm-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-[100]">
+        <div class="p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center space-y-4" style="background-color: var(--cor-primaria);">
+            <h3 class="text-xl font-bold text-theme">Confirmar Exclusão</h3>
+            <p id="delete-confirm-message" class="text-theme">Tem certeza que deseja excluir este item da lista?</p>
+            <div class="flex justify-center space-x-4">
+                <button id="cancel-delete-button" class="px-6 py-2 font-semibold rounded-md hover:brightness-90" style="background-color: var(--cor-secundaria); color: var(--cor-texto);">Cancelar</button>
+                <button id="confirm-delete-button" class="px-6 py-2 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600">Excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para confirmação de mover item -->
+    <div id="move-item-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-[100]">
+        <div class="p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center space-y-4" style="background-color: var(--cor-primaria);">
+            <h3 class="text-xl font-bold text-theme">Confirmar Ação</h3>
+            <p id="move-item-confirm-message" class="text-theme"></p>
+            <div class="flex justify-center space-x-4">
+                <button id="cancel-move-button" class="px-6 py-2 font-semibold rounded-md hover:brightness-90 transition-colors" style="background-color: var(--cor-secundaria); color: var(--cor-texto);">Cancelar</button>
+                <button id="confirm-move-button" class="px-6 py-2 text-black font-semibold rounded-md hover:brightness-90" style="background-color: var(--cor-destaque);">Confirmar</button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <!-- Novo Modal para adicionar aplicativos personalizados -->
+    <div id="add-app-modal" class="fixed inset-0 hidden flex-col z-[60]" style="background-color: var(--cor-secundaria);">
+        <header class="flex items-center justify-between p-4 shadow-md" style="background-color: var(--cor-primaria);">
+            <h2 id="add-app-title" class="text-2xl font-bold truncate text-theme">Criar Pasta</h2>
+            <button id="close-add-app-modal" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </header>
+        <div class="flex flex-col p-4 flex-grow space-y-4 overflow-y-auto">
+            <div class="relative">
+                <label for="app-title-input" class="block text-sm font-medium text-left text-theme">Nome da Pasta</label>
+                <input type="text" id="app-title-input" placeholder="Ex: Músicas para relaxar" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-black">
+            </div>
+
+
+            <div class="flex justify-between space-x-4 pt-2">
+                <button id="save-app-button" class="w-full px-4 py-3 text-black font-semibold rounded-md transition-colors" style="background-color: var(--cor-destaque);">
+                    Criar Pasta
+                </button>
+                <button id="cancel-add-app-button" class="w-full px-4 py-3 font-semibold rounded-md transition-colors hover:brightness-90" style="background-color: var(--cor-secundaria); color: var(--cor-texto);">
+                    Cancelar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Novo Modal para Editar Nome de App Fixo -->
+    <div id="edit-fixed-app-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="p-6 rounded-2xl shadow-2xl max-w-sm w-full space-y-4" style="background-color: var(--cor-primaria);">
+            <h3 id="edit-fixed-app-title" class="text-2xl font-bold text-center text-theme">Editar Nome</h3>
+            <div class="relative">
+                <label for="fixed-app-name-input" class="block text-sm font-medium text-left text-theme">Novo Nome</label>
+                <input type="text" id="fixed-app-name-input" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="flex justify-between space-x-4 pt-2">
+                <button id="cancel-edit-fixed-app-button" class="w-full px-4 py-3 font-semibold rounded-md hover:brightness-90" style="background-color: var(--cor-secundaria); color: var(--cor-texto);">Cancelar</button>
+                <button id="save-edit-fixed-app-button" class="w-full px-4 py-3 text-black font-semibold rounded-md" style="background-color: var(--cor-destaque);">Salvar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOVO: Modal para Adicionar Música à Pasta -->
+    <div id="add-to-folder-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-[90]">
+        <div class="p-6 rounded-2xl shadow-2xl max-w-sm w-full space-y-4" style="background-color: var(--cor-primaria);">
+            <h3 class="text-2xl font-bold text-center text-theme">Adicionar à Pasta</h3>
+            <div class="relative">
+                <label for="modal-folder-select" class="block text-sm font-medium text-left text-theme">Selecione a Pasta</label>
+                <select id="modal-folder-select" class="mt-1 block w-full px-4 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" style="background-color: var(--cor-secundaria); border-color: var(--cor-destaque); color: var(--cor-texto);">
+                    <!-- Opções de pasta serão preenchidas aqui -->
+                </select>
+            </div>
+            <div class="flex justify-between space-x-4 pt-2">
+                <button id="cancel-add-to-folder-modal-button" class="w-full px-4 py-3 font-semibold rounded-md hover:brightness-90" style="background-color: var(--cor-secundaria); color: var(--cor-texto);">Cancelar</button>
+                <button id="confirm-add-to-folder-modal-button" class="w-full px-4 py-3 text-black font-semibold rounded-md" style="background-color: var(--cor-destaque);">Adicionar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NOVO: Modal do App Explorar (Estrutura Refatorada) -->
+    <div id="explore-modal" class="fixed top-0 left-0 right-0 bottom-24 hidden flex-col z-50" style="background-color: var(--cor-secundaria);">
+        <header class="p-4 shadow-md space-y-4 text-theme" style="background-color: var(--cor-primaria);">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center">
+                    <!-- Botão de Voltar (inicialmente oculto) -->
+                    <button id="explore-back-button" class="hidden mr-4 text-gray-300 hover:text-white">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+                        </svg>
+                    </button>
+                    <!-- Título Dinâmico -->
+                    <h2 id="explore-title" class="text-2xl font-bold truncate">Explorar</h2>
+                </div>
+                <!-- Botão de Fechar (movido para a direita) -->
+                <button id="close-explore-modal" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <input type="search" id="explore-search-input" placeholder="Pesquisar por música ou artista..." class="w-full px-4 py-2 rounded-md focus:outline-none focus:ring-2" style="background-color: var(--cor-secundaria); color: var(--cor-texto); --tw-ring-color: var(--cor-destaque);">
+        </header>
+        <!-- Container para as diferentes visualizações -->
+        <div id="explore-content-container" class="flex-grow p-4 pb-20"> <!-- Padding inferior para não sobrepor o botão -->
+            <!-- As listas de artistas, álbuns e músicas serão renderizadas aqui -->
+        </div>
+
+        <!-- BOTÃO FLUTUANTE DE MÚSICA ALEATÓRIA DENTRO DO MODAL -->
+        <button id="fab-random-song-explore" class="fixed bottom-28 right-6 z-[60] w-16 h-16 rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform duration-200 focus:outline-none" style="background-color: var(--cor-destaque);" title="Música Aleatória">
+            <i class="fas fa-random text-2xl text-black"></i>
+        </button>
+    </div>
+
+    <!-- Player de Música Fixo -->
+    <div id="music-player" class="fixed bottom-0 left-0 right-0 p-4 shadow-lg z-50 cursor-pointer text-theme hidden" style="background-color: var(--cor-primaria);">
+        <div class="flex items-center">
+            <img id="player-album-art" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Capa do Álbum" class="w-16 h-16 rounded-md mr-4">
+            <div class="flex-grow">
+                <h3 id="player-song-title" class="font-bold">Nome da Música</h3>
+                <p id="player-artist-name" class="text-sm text-gray-400">Nome do Artista</p>
+            </div>
+            <audio id="player-audio" class="w-1/2"></audio>
+            <audio id="silent-audio" loop src="data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA"></audio>
+        </div>
+    </div>
+
+    <!-- Modal de Comparação de Preços -->
+    <div id="price-comparison-modal" class="fixed inset-0 bg-gray-100 hidden flex-col z-50">
+        <!-- Cabeçalho do Modal -->
+        <header class="flex items-center justify-between p-4 bg-white shadow-md">
+            <div>
+                <h2 class="text-2xl font-bold text-theme">Comparar Preços</h2>
+                <p id="comparison-item-name" class="text-lg text-theme"></p>
+            </div>
+            <button id="close-price-comparison-modal" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </header>
+
+        <!-- Formulário para Adicionar Preço -->
+        <div class="p-4 bg-white border-b">
+            <div class="flex flex-col sm:flex-row gap-2">
+                <input type="text" id="price-location-input" placeholder="Nome do Local" class="flex-grow px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <input type="number" id="price-value-input" placeholder="Preço (ex: 12.99)" step="0.01" class="px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+                <button id="add-price-button" class="px-4 py-2 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700 transition-colors">Adicionar</button>
+            </div>
+        </div>
+
+        <!-- Lista de Preços -->
+        <div id="price-list-container" class="flex-grow overflow-y-auto p-4 space-y-2">
+            <!-- Preços serão injetados aqui -->
+        </div>
+    </div>
+
+    <!-- Modal para Editar Preço -->
+    <div id="edit-price-modal" class="fixed inset-0 bg-gray-100 hidden flex-col z-[60]">
+        <header class="flex items-center justify-between p-4 bg-white shadow-md">
+            <h2 class="text-2xl font-bold text-theme">Editar Preço</h2>
+            <button id="close-edit-price-modal-x-button" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </header>
+        <div class="flex flex-col p-4 bg-gray-100 flex-grow space-y-4">
+            <div class="relative">
+                <label for="edit-price-location-input" class="block text-sm font-medium text-left text-theme">Local</label>
+                <input type="text" id="edit-price-location-input" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="relative">
+                <label for="edit-price-value-input" class="block text-sm font-medium text-left text-theme">Preço</label>
+                <input type="number" id="edit-price-value-input" step="0.01" class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500">
+            </div>
+            <div class="flex justify-between space-x-4 pt-2">
+                <button id="save-edit-price-button" class="w-full px-4 py-3 bg-indigo-600 text-white font-semibold rounded-md hover:bg-indigo-700">Salvar</button>
+                <button id="cancel-edit-price-button" class="w-full px-4 py-3 font-semibold rounded-md hover:brightness-90" style="background-color: var(--cor-secundaria); color: var(--cor-texto);">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+
+    <script type="module">
+        // --- CORREÇÃO IMPORTANTE PARA O ERRO "INVALID API KEY" ---
+        // O erro que está a receber ("Invalid API key") significa que os valores abaixo
+        // não correspondem ao seu projeto Supabase. É necessário substituí-los.
+        //
+        // COMO RESOLVER:
+        // 1. Vá ao painel do seu projeto no site do Supabase.
+        // 2. Navegue até "Project Settings" (Definições do Projeto) e depois "API".
+        // 3. Copie o "Project URL" e cole no lugar de 'SUA_SUPABASE_URL'.
+        // 4. Na mesma página, copie a chave "anon" (pública) e cole no lugar de 'SUA_SUPABASE_ANON_KEY'.
+        //
+        // O código não funcionará até que substitua estas duas linhas com as suas chaves corretas.
+        const SUPABASE_URL = 'https://wgzsvqtfssepfcbltres.supabase.co'; // Substitua com o seu URL do projeto
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndnenN2cXRmc3NlcGZjYmx0cmVzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjAwODA3NTAsImV4cCI6MjA3NTY1Njc1MH0.hGhM4_LolXKbB9wHu_M2DqDD0injIN6bOc7cuD-gazg'; // Substitua com a sua chave anon (pública)
+
+
+
+
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        // Configura o cliente do Supabase
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // --- REFERÊNCIAS DE ELEMENTOS HTML ---
+        const mainContainer = document.getElementById('main-container');
+        const app = document.getElementById('app');
+        const loggedInAppContainer = document.getElementById('logged-in-app');
+        const loginFormContainer = document.getElementById('login-form-container');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const loginButton = document.getElementById('login-button');
+
+        // --- NOVO: Referências do Formulário de Cadastro ---
+        const signupFormContainer = document.getElementById('signup-form-container');
+        const signupEmailInput = document.getElementById('signup-email');
+        const signupPasswordInput = document.getElementById('signup-password');
+        const signupConfirmPasswordInput = document.getElementById('signup-confirm-password');
+        const signupButton = document.getElementById('signup-button');
+        const showSignupButton = document.getElementById('show-signup-button');
+        const showLoginButton = document.getElementById('show-login-button');
+        const resetPasswordButton = document.getElementById('reset-password-button');
+        const resetPasswordModal = document.getElementById('reset-password-modal');
+        const resetEmailDisplay = document.getElementById('reset-email-display');
+        const closeModalButton = document.getElementById('close-modal-button');
+        const newPasswordContainer = document.getElementById('new-password-container');
+        const newPasswordInput = document.getElementById('new-password');
+        const confirmPasswordInput = document.getElementById('confirm-password');
+        const updatePasswordButton = document.getElementById('update-password-button');
+        const userInitialsLoggedIn = document.getElementById('user-initials-logged-in');
+
+        // NOVO: Referências do modal de troca de senha
+        const changePasswordModal = document.getElementById('change-password-modal');
+        const closeChangePasswordModalButton = document.getElementById('close-change-password-modal');
+        const cancelChangePasswordButton = document.getElementById('cancel-change-password-button');
+
+        // Novas referências
+        const profileButton = document.getElementById('new-profile-button');
+        const profileModal = document.getElementById('profile-modal');
+        const closeProfileModalButton = document.getElementById('close-profile-modal');
+        const changePasswordButton = document.getElementById('change-password-button');
+        const logoutButtonModal = document.getElementById('logout-button');
+
+        // Referências do novo modal de espera
+        const waitMessageModal = document.getElementById('wait-message-modal');
+        const waitTimeSpan = document.getElementById('wait-time');
+        const closeWaitModalButton = document.getElementById('close-wait-modal');
+
+        // Referências do modal de confirmação de exclusão
+        const deleteConfirmModal = document.getElementById('delete-confirm-modal');
+        const confirmDeleteButton = document.getElementById('confirm-delete-button');
+        const cancelDeleteButton = document.getElementById('cancel-delete-button');
+
+        // Referências do modal de mover item
+        const moveItemModal = document.getElementById('move-item-modal');
+        const moveItemConfirmMessage = document.getElementById('move-item-confirm-message');
+        const confirmMoveButton = document.getElementById('confirm-move-button');
+        const cancelMoveButton = document.getElementById('cancel-move-button');
+
+        const autoSkipToggle = document.getElementById('auto-skip-toggle');
+        const buttonGridContainer = document.getElementById('button-grid-container');
+        const mainHeader = document.getElementById('main-header');
+
+        // Referências do novo modal para adicionar aplicativos
+        const addAppButton = document.getElementById('add-app-button');
+        const addAppModal = document.getElementById('add-app-modal');
+        const closeAddAppModalButton = document.getElementById('close-add-app-modal');
+        const appTitleInput = document.getElementById('app-title-input');
+        const saveAppButton = document.getElementById('save-app-button');
+        const cancelAddAppButton = document.getElementById('cancel-add-app-button');
+        // const iconPickerContainer = document.getElementById('icon-picker-container'); // Removido
+        // const appIconClassInput = document.getElementById('app-icon-class-input'); // Removido
+        // const appBgColorInput = document.getElementById('app-bg-color-input'); // Removido
+        // const appIconColorInput = document.getElementById('app-icon-color-input'); // Removido
+
+        // Referências da nova faixa de ações e seus botões
+        const appActionBar = document.getElementById('app-action-bar');
+        const openAppButton = document.getElementById('open-app-button');
+        const editAppButton = document.getElementById('edit-app-button');
+        const deleteAppButton = document.getElementById('delete-app-button');
+        const closeAppModalButton = document.getElementById('close-app-modal-button');
+
+        // Referências do App Explorar
+        const exploreModal = document.getElementById('explore-modal');
+        const closeExploreModalButton = document.getElementById('close-explore-modal');
+        const exploreContentContainer = document.getElementById('explore-content-container');
+        const exploreTitle = document.getElementById('explore-title');
+        const exploreBackButton = document.getElementById('explore-back-button');
+        const exploreSearchInput = document.getElementById('explore-search-input');
+
+
+        // Referências do novo Modal de Conteúdo da Pasta
+        const folderContentModal = document.getElementById('folder-content-modal');
+        const folderContentTitle = document.getElementById('folder-content-title');
+        const closeFolderContentModalBtn = document.getElementById('close-folder-content-modal');
+        const folderMusicListContainer = document.getElementById('folder-music-list-container');
+
+        // NOVO: Referências do Modal "Adicionar à Pasta"
+        const addToFolderModal = document.getElementById('add-to-folder-modal');
+        const modalFolderSelect = document.getElementById('modal-folder-select');
+        const cancelAddToFolderModalButton = document.getElementById('cancel-add-to-folder-modal-button');
+        const confirmAddToFolderModalButton = document.getElementById('confirm-add-to-folder-modal-button');
+        const folderSearchInput = document.getElementById('folder-search-input'); // Novo campo de pesquisa
+
+        // Referências do Player de Tela Cheia
+        const fullscreenPlayer = document.getElementById('fullscreen-player');
+        const closeFullscreenPlayerBtn = document.getElementById('close-fullscreen-player');
+        const fullscreenAlbumArt = document.getElementById('fullscreen-album-art');
+        const fullscreenSongTitle = document.getElementById('fullscreen-song-title');
+        const fullscreenArtistName = document.getElementById('fullscreen-artist-name');
+        const lyricsContainer = document.getElementById('lyrics-container');
+        const progressSlider = document.getElementById('progress-slider');
+        const currentTimeDisplay = document.getElementById('current-time');
+        const durationDisplay = document.getElementById('duration');
+        const playPauseBtn = document.getElementById('play-pause-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const repeatModeBtn = document.getElementById('repeat-mode-btn');
+        const volumeSlider = document.getElementById('volume-slider');
+        const addToFolderFullscreenBtn = document.getElementById('add-to-folder-fullscreen-btn');
+
+        // Referências da Notificação
+        const notificationModal = document.getElementById('notification-modal');
+        const notificationMessage = document.getElementById('notification-message');
+
+        // Referências do Player de Música
+        const musicPlayer = document.getElementById('music-player');
+        const playerAlbumArt = document.getElementById('player-album-art');
+        const playerSongTitle = document.getElementById('player-song-title');
+        const playerArtistName = document.getElementById('player-artist-name');
+        const playerAudio = document.getElementById('player-audio');
+        const silentAudio = document.getElementById('silent-audio');
+
+        // --- NOVA LÓGICA DE REPRODUÇÃO E HISTÓRICO ---
+        let currentQueue = [];
+        let currentQueueIndex = -1;
+        let currentSong = null; // Armazena a música atual
+        let historyPast = [];   // Armazena as músicas já tocadas
+        let historyFuture = []; // Armazena as músicas "puladas" com o botão "anterior"
+        let repeatMode = 'shuffle';
+        let isRandomModeActive = false;
+        let autoSkipTimeout = null;
+
+        // --- FUNÇÃO DE BUSCA DE LETRAS ATUALIZADA PARA USAR LRCLIB ---
+        async function fetchAndDisplayLyrics(artist, title, album, duration) {
+            if (!artist || !title || !album || !duration) {
+                lyricsContainer.textContent = 'Informações insuficientes para buscar a letra.';
+                return;
+            }
+            lyricsContainer.textContent = 'Buscando letra...';
+
+            try {
+                const url = `https://lrclib.net/api/get?artist_name=${encodeURIComponent(artist)}&track_name=${encodeURIComponent(title)}&album_name=${encodeURIComponent(album)}&duration=${duration}`;
+                const response = await fetch(url);
+
+                if (!response.ok) {
+                    // Se a API retornar um erro (ex: 404), exibe "Letra não encontrada".
+                    lyricsContainer.textContent = 'Letra não encontrada.';
+                    return;
+                }
+
+                const data = await response.json();
+
+                // Verifica se a propriedade 'plainLyrics' existe e não está vazia
+                if (data && data.plainLyrics) {
+                    lyricsContainer.textContent = data.plainLyrics;
+                } else {
+                    lyricsContainer.textContent = 'Letra não encontrada.';
+                }
+            } catch (error) {
+                console.error('Erro ao buscar a letra na LRCLIB API:', error);
+                lyricsContainer.textContent = 'Ocorreu um erro ao buscar a letra.';
+            }
+        }
+
+        function playSong(songData, fromHistory = false, autoplay = true) {
+            if (silentAudio.paused) {
+                silentAudio.play().catch(e => console.error("A reprodução do áudio silencioso falhou:", e));
+            }
+
+            if (autoSkipTimeout) {
+                clearTimeout(autoSkipTimeout);
+                autoSkipTimeout = null;
+            }
+
+            if (currentSong && !fromHistory) {
+                historyPast.push(currentSong);
+                historyFuture = [];
+            }
+            currentSong = songData;
+
+            // Reseta o background antes de tentar carregar a nova imagem
+            playerAlbumArt.style.backgroundColor = 'transparent';
+            fullscreenAlbumArt.style.backgroundColor = 'transparent';
+
+            playerAlbumArt.src = songData.albumArt || 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+            playerSongTitle.textContent = songData.title || 'Música desconhecida';
+            playerArtistName.textContent = songData.artist || 'Artista desconhecido';
+            fullscreenAlbumArt.src = playerAlbumArt.src;
+            fullscreenSongTitle.textContent = playerSongTitle.textContent;
+            fullscreenArtistName.textContent = playerArtistName.textContent;
+            playerAudio.src = songData.src;
+
+            // A busca de letras foi movida para o evento 'loadedmetadata' para garantir que a duração esteja disponível.
+
+            if (autoplay) {
+                playerAudio.play();
+            }
+
+            // Garante que o player esteja visível
+            musicPlayer.classList.remove('hidden');
+
+            // --- INTEGRAÇÃO COM MEDIA SESSION API ---
+            if ('mediaSession' in navigator) {
+                navigator.mediaSession.metadata = new MediaMetadata({
+                    title: songData.title || 'Música desconhecida',
+                    artist: songData.artist || 'Artista desconhecido',
+                    album: songData.album || '',
+                    artwork: [
+                        { src: songData.albumArt || 'https://placehold.co/96x96', sizes: '96x96', type: 'image/png' },
+                        { src: songData.albumArt || 'https://placehold.co/128x128', sizes: '128x128', type: 'image/png' },
+                        { src: songData.albumArt || 'https://placehold.co/192x192', sizes: '192x192', type: 'image/png' },
+                        { src: songData.albumArt || 'https://placehold.co/256x256', sizes: '256x256', type: 'image/png' },
+                        { src: songData.albumArt || 'https://placehold.co/384x384', sizes: '384x384', type: 'image/png' },
+                        { src: songData.albumArt || 'https://placehold.co/512x512', sizes: '512x512', type: 'image/png' },
+                    ]
+                });
+
+                navigator.mediaSession.setActionHandler('play', () => playerAudio.play());
+                navigator.mediaSession.setActionHandler('pause', () => playerAudio.pause());
+                navigator.mediaSession.setActionHandler('previoustrack', playPreviousSong);
+                navigator.mediaSession.setActionHandler('nexttrack', playNextSong);
+            }
+            // --- FIM DA INTEGRAÇÃO ---
+
+            if (currentUserPreferences.autoSkip !== false) {
+                autoSkipTimeout = setTimeout(() => {
+                    const wasPaused = playerAudio.paused;
+                    showNotification('A música demorou para carregar e foi pulada.', 'error');
+                    playNextSong(!wasPaused); // Se estava pausado, não toca a próxima automaticamente
+                }, 20000);
+            }
+        }
+
+        async function playNextSong(autoplay = true) {
+            // Se estiver no modo aleatório global, busca uma música completamente nova
+            if (isRandomModeActive) {
+                if (historyFuture.length > 0) {
+                    playSong(historyFuture.pop(), true, autoplay);
+                } else {
+                    await playRandomSong(false, autoplay);
+                }
+                return;
+            }
+
+            // Lógica para playlists (fila atual)
+            if (currentQueue.length === 0) return;
+
+            let nextIndex;
+            if (repeatMode === 'shuffle') {
+                // Seleciona um índice aleatório diferente do atual
+                do {
+                    nextIndex = Math.floor(Math.random() * currentQueue.length);
+                } while (currentQueue.length > 1 && nextIndex === currentQueueIndex);
+            } else { // 'repeat-all' ou 'repeat-one' (quando o botão "próximo" é clicado)
+                nextIndex = currentQueueIndex + 1;
+                // Para 'repeat-all' ou para continuar após o fim da lista, volta ao início.
+                // Não há modo "parar no final", o ciclo de modos de repetição garante a reprodução contínua.
+                if (nextIndex >= currentQueue.length) {
+                    nextIndex = 0;
+                }
+            }
+            currentQueueIndex = nextIndex;
+            playSong(currentQueue[currentQueueIndex], false, autoplay);
+        }
+
+        function playPreviousSong() {
+            if (isRandomModeActive) {
+                if (historyPast.length > 0) {
+                    historyFuture.push(currentSong);
+                    playSong(historyPast.pop(), true);
+                }
+            } else {
+                if (currentQueue.length === 0 || currentQueueIndex <= 0) return;
+                currentQueueIndex--;
+                playSong(currentQueue[currentQueueIndex]);
+            }
+        }
+
+        nextBtn.addEventListener('click', () => playNextSong());
+        prevBtn.addEventListener('click', playPreviousSong);
+
+        // --- FUNÇÃO PARA LIDAR COM ERROS DE IMAGEM ---
+        function handleImageError(event) {
+            const image = event.target;
+            // Define o fundo com a cor primária do tema atual
+            image.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--cor-primaria');
+            // Define a imagem para um GIF transparente para evitar o ícone de imagem quebrada
+            image.src = 'data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=';
+        }
+
+        // Adiciona o listener de erro às imagens do álbum
+        playerAlbumArt.addEventListener('error', handleImageError);
+        fullscreenAlbumArt.addEventListener('error', handleImageError);
+
+        // --- LÓGICA DO CONTROLE DE VOLUME ---
+
+        volumeSlider.addEventListener('input', (e) => {
+            playerAudio.volume = e.target.value;
+        });
+
+        // --- LÓGICA DO MODO DE REPETIÇÃO ---
+        const repeatModes = [
+            { mode: 'shuffle', icon: 'fa-random' },
+            { mode: 'repeat-all', icon: 'fa-redo-alt' },
+            { mode: 'repeat-one', icon: 'fa-retweet' }
+        ];
+
+        function updateRepeatModeButton() {
+            const currentMode = repeatModes.find(m => m.mode === repeatMode);
+            if (!currentMode) return;
+
+            const icon = repeatModeBtn.querySelector('i');
+            // Garante que o ícone seja sempre grande e preto, removendo a cor customizada.
+            icon.className = `fas ${currentMode.icon} text-2xl`;
+        }
+
+        repeatModeBtn.addEventListener('click', () => {
+            let currentModeIndex = repeatModes.findIndex(m => m.mode === repeatMode);
+            let nextMode;
+
+            do {
+                currentModeIndex = (currentModeIndex + 1) % repeatModes.length;
+                nextMode = repeatModes[currentModeIndex];
+            } while (isRandomModeActive && nextMode.mode === 'repeat-all');
+
+            repeatMode = nextMode.mode;
+            updateRepeatModeButton();
+        });
+
+        const MUSIC_PAGE_SIZE = 50; // Usado no loop de busca
+        let isMusicSelectionModeActive = false; // Novo estado para o modo de seleção
+
+
+        // Referências do Modal de Edição de App Fixo
+        const editFixedAppModal = document.getElementById('edit-fixed-app-modal');
+        const editFixedAppTitle = document.getElementById('edit-fixed-app-title');
+        const fixedAppNameInput = document.getElementById('fixed-app-name-input');
+        const saveEditFixedAppButton = document.getElementById('save-edit-fixed-app-button');
+        const cancelEditFixedAppButton = document.getElementById('cancel-edit-fixed-app-button');
+
+        let itemToDeleteInfo = null;
+        let customAppsSubscription = null;
+        let isDragging = false;
+        let tempPreferences = {}; // State for settings modal
+        let currentUserPreferences = {}; // Armazena as preferências carregadas
+        let isAppInitialized = false;
+
+        const availableIcons = [
+            // Web & Interface
+            'fas fa-link', 'fas fa-globe', 'fas fa-star', 'fas fa-heart', 'fas fa-home', 'fas fa-user', 'fas fa-cog',
+            'fas fa-envelope', 'fas fa-search', 'fas fa-filter', 'fas fa-bell', 'fas fa-bookmark', 'fas fa-tag',
+            'fas fa-print', 'fas fa-download', 'fas fa-upload', 'fas fa-share-alt', 'fas fa-check', 'fas fa-times',
+            'fas fa-plus', 'fas fa-minus', 'fas fa-edit', 'fas fa-trash', 'fas fa-info-circle', 'fas fa-question-circle',
+            'fas fa-exclamation-triangle', 'fas fa-exclamation-circle', 'fas fa-power-off', 'fas fa-sync-alt',
+
+            // Objects & Items
+            'fas fa-book', 'fas fa-gamepad', 'fas fa-music', 'fas fa-video', 'fas fa-camera', 'fas fa-cloud',
+            'fas fa-code', 'fas fa-folder', 'fas fa-folder-open', 'fas fa-calculator', 'fas fa-briefcase', 'fas fa-store',
+            'fas fa-gift', 'fas fa-key', 'fas fa-lock', 'fas fa-unlock', 'fas fa-wallet', 'fas fa-credit-card',
+            'fas fa-shopping-bag', 'fas fa-shopping-cart', 'fas fa-box', 'fas fa-archive', 'fas fa-lightbulb',
+            'fas fa-paint-brush', 'fas fa-wrench', 'fas fa-hammer', 'fas fa-tshirt',
+
+            // Business & Finance
+            'fas fa-chart-bar', 'fas fa-chart-line', 'fas fa-chart-pie', 'fas fa-dollar-sign', 'fas fa-euro-sign',
+            'fas fa-pound-sign', 'fas fa-yen-sign', 'fas fa-piggy-bank', 'fas fa-building', 'fas fa-landmark',
+            'fas fa-file-invoice-dollar', 'fas fa-handshake',
+
+            // Communication
+            'fas fa-phone', 'fas fa-phone-alt', 'fas fa-comments', 'fas fa-comment', 'fas fa-microphone',
+            'fas fa-mobile-alt', 'fas fa-rss', 'fas fa-wifi',
+
+            // Transportation & Travel
+            'fas fa-car', 'fas fa-bus', 'fas fa-train', 'fas fa-plane', 'fas fa-ship', 'fas fa-bicycle',
+            'fas fa-map-marker-alt', 'fas fa-compass', 'fas fa-suitcase', 'fas fa-route', 'fas fa-gas-pump',
+
+            // Food & Drink
+            'fas fa-coffee', 'fas fa-utensils', 'fas fa-pizza-slice', 'fas fa-hamburger', 'fas fa-glass-martini-alt',
+            'fas fa-birthday-cake', 'fas fa-cookie-bite',
+
+            // Health & Medical
+            'fas fa-heartbeat', 'fas fa-medkit', 'fas fa-stethoscope', 'fas fa-user-md', 'fas fa-pills',
+            'fas fa-first-aid', 'fas fa-dna',
+
+            // Miscellaneous
+            'fas fa-sun', 'fas fa-moon', 'fas fa-snowflake', 'fas fa-fire', 'fas fa-leaf', 'fas fa-tree',
+            'fas fa-graduation-cap', 'fas fa-trophy', 'fas fa-futbol', 'fas fa-palette'
+        ];
+
+        const fixedAppsMasterList = [
+            // { id: 'explore-app', title: 'Explorar', iconClass: 'fas fa-compass', isFixed: true } // Movido para a barra de navegação inferior
+        ];
+
+        // --- NOVA FUNÇÃO PARA BUSCAR E EXIBIR CONTAGEM TOTAL DE MÚSICAS ---
+        async function fetchAndDisplayTotalSongs() {
+            const musicCountDisplay = document.getElementById('music-count-display');
+            if (!musicCountDisplay) return;
+
+            // Mostra um estado de carregamento
+            musicCountDisplay.textContent = 'Carregando músicas...';
+
+            const { count, error } = await supabase
+                .from('Musicas')
+                .select('*', { count: 'exact', head: true });
+
+            if (error) {
+                console.error('Erro ao contar as músicas:', error);
+                musicCountDisplay.textContent = 'Erro ao carregar.';
+                return;
+            }
+
+            // Formata o número para o padrão brasileiro (ex: 13.530)
+            const formattedCount = new Intl.NumberFormat('pt-BR').format(count);
+            musicCountDisplay.textContent = `${formattedCount} Músicas`;
+        }
+        // --- FUNÇÕES DE INICIALIZAÇÃO E UI ---
+
+        // Função para carregar os dados do perfil logado
+        async function loadUserProfile(user) {
+            // A lógica de carregamento do nome e avatar do perfil foi removida
+            // pois os elementos da UI não existem mais.
+        }
+
+        // Função para alternar a visibilidade das áreas
+        function toggleUI(isLoggedIn, view) {
+            // Esconde todos os modais primeiro
+            profileModal.classList.add('hidden');
+            waitMessageModal.classList.add('hidden');
+
+            deleteConfirmModal.classList.add('hidden');
+            addAppModal.classList.add('hidden');
+            editFixedAppModal.classList.add('hidden');
+            exploreModal.classList.add('hidden');
+
+
+            if (isLoggedIn) {
+                // Mostra a App e esconde o contentor do Login
+                loggedInAppContainer.classList.remove('hidden');
+                mainContainer.classList.add('hidden');
+
+                // Ajusta o estilo do body para a app
+                document.body.classList.remove('bg-gray-100');
+
+                hideAppActionBar();
+
+            } else {
+                // Mostra o contentor do Login e esconde a App
+                mainContainer.classList.remove('hidden');
+                loggedInAppContainer.classList.add('hidden');
+
+                // Restaura o estilo do body para o login
+                mainContainer.classList.add('items-center');
+                mainContainer.classList.remove('items-start', 'pt-20');
+
+
+                // Esconde todas as vistas dentro do ecrã de login
+                loginFormContainer.classList.add('hidden');
+                signupFormContainer.classList.add('hidden');
+                newPasswordContainer.classList.add('hidden');
+
+                // Mostra a vista de login correta
+                if (view === 'new-password') {
+                    newPasswordContainer.classList.remove('hidden');
+                } else if (view === 'signup') {
+                    signupFormContainer.classList.remove('hidden');
+                } else { // A vista padrão é o formulário de login
+                    loginFormContainer.classList.remove('hidden');
+                }
+            }
+        }
+
+        // --- FUNÇÃO DE NOTIFICAÇÃO PERSONALIZADA ---
+        function showNotification(message, type = 'success') {
+            notificationMessage.textContent = message;
+
+            // Remove classes de cor antigas e adiciona a nova
+            notificationModal.classList.remove('bg-green-500', 'bg-red-500');
+            if (type === 'success') {
+                notificationModal.classList.add('bg-green-500');
+            } else if (type === 'error') {
+                notificationModal.classList.add('bg-red-500');
+            }
+
+            // Mostra o modal com animação
+            notificationModal.classList.remove('hidden');
+            setTimeout(() => {
+                notificationModal.classList.add('opacity-100', 'translate-y-0');
+                notificationModal.classList.remove('opacity-0', '-translate-y-5');
+            }, 10);
+
+
+            // Esconde o modal após 3 segundos
+            setTimeout(() => {
+                notificationModal.classList.add('opacity-0', '-translate-y-5');
+                notificationModal.classList.remove('opacity-100', 'translate-y-0');
+                setTimeout(() => {
+                    notificationModal.classList.add('hidden');
+                }, 300);
+            }, 3000);
+        }
+
+        // Função para exibir o modal de espera com a contagem regressiva
+        function showWaitModal(seconds) {
+            let timeLeft = seconds;
+            waitTimeSpan.textContent = timeLeft;
+            waitMessageModal.classList.remove('hidden');
+            waitMessageModal.classList.add('flex');
+
+            const timer = setInterval(() => {
+                timeLeft--;
+                waitTimeSpan.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    waitMessageModal.classList.add('hidden');
+                    waitMessageModal.classList.remove('flex');
+                }
+            }, 1000);
+        }
+
+        // --- FUNÇÕES DE PAPEL DE PAREDE E APARÊNCIA ---
+
+        // Salva as preferências do usuário no Supabase
+        async function saveUserPreferences(preferences) {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { error } = await supabase
+                .from('profiles')
+                .update({ preferences: preferences })
+                .eq('id', user.id);
+
+            if (error) {
+                console.error('Erro ao salvar preferências:', error);
+            }
+        }
+
+        // Carrega as preferências do usuário ao logar
+        async function loadUserPreferences() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data, error } = await supabase
+                .from('profiles')
+                .select('preferences')
+                .eq('id', user.id)
+                .single();
+
+            if (error && error.code !== 'PGRST116') {
+                console.error('Erro ao carregar preferências:', error);
+                currentUserPreferences = {}; // Define um padrão
+            } else if (data && data.preferences) {
+                currentUserPreferences = data.preferences;
+            } else {
+                currentUserPreferences = {}; // Define um padrão
+            }
+
+            // Aplica a preferência de autoSkip ao toggle
+            autoSkipToggle.checked = currentUserPreferences.autoSkip !== false;
+        }
+
+
+
+        function showEditNoteModal(id, title, content, startDate, endDate, isFixed) {
+            editingNoteId = id;
+            if (id) {
+                noteModalTitle.textContent = 'Editar Nota';
+                editNoteTitleInput.value = title;
+                editNoteInput.value = content;
+                editNoteStartDateInput.value = startDate ? startDate.split('T')[0] : '';
+                editNoteEndDateInput.value = endDate ? endDate.split('T')[0] : '';
+                editNoteIsFixedCheckbox.checked = isFixed;
+            } else {
+                noteModalTitle.textContent = 'Adicionar Nova Nota';
+                editNoteTitleInput.value = '';
+                editNoteInput.value = '';
+                editNoteStartDateInput.value = '';
+                editNoteEndDateInput.value = '';
+                editNoteIsFixedCheckbox.checked = false;
+            }
+            const fixed = editNoteIsFixedCheckbox.checked;
+            editNoteStartDateInput.disabled = fixed;
+            editNoteEndDateInput.disabled = fixed;
+            editNoteModal.classList.remove('hidden');
+            editNoteModal.classList.add('flex');
+            editNoteTitleInput.focus();
+            noteErrorMessage.classList.add('hidden');
+        }
+
+        function closeEditNoteModal() {
+            editingNoteId = null;
+            editNoteModal.classList.add('hidden');
+            editNoteModal.classList.remove('flex');
+            noteErrorMessage.classList.add('hidden');
+        }
+
+
+
+        // --- EVENT LISTENERS ---
+
+        // --- NOVO: Lógica para alternar entre Login e Cadastro ---
+        showSignupButton.addEventListener('click', () => {
+            loginFormContainer.classList.add('hidden');
+            signupFormContainer.classList.remove('hidden');
+        });
+
+        showLoginButton.addEventListener('click', () => {
+            signupFormContainer.classList.add('hidden');
+            loginFormContainer.classList.remove('hidden');
+        });
+
+        // --- NOVO: Lógica de Cadastro ---
+        signupButton.addEventListener('click', async () => {
+            const email = signupEmailInput.value;
+            const password = signupPasswordInput.value;
+            const confirmPassword = signupConfirmPasswordInput.value;
+
+            if (!email || !password || !confirmPassword) {
+                showNotification("Por favor, preencha todos os campos.", 'error');
+                return;
+            }
+            if (password !== confirmPassword) {
+                showNotification("As senhas não coincidem.", 'error');
+                return;
+            }
+            if (password.length < 6) {
+                showNotification("A senha deve ter pelo menos 6 caracteres.", 'error');
+                return;
+            }
+
+            const { data, error } = await supabase.auth.signUp({
+                email: email,
+                password: password,
+            });
+
+            if (error) {
+                showNotification(`Erro no cadastro: ${error.message}`, 'error');
+            } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+                showNotification('Este email já está em uso, mas não foi confirmado. Tente fazer login ou redefinir a senha.', 'error');
+            }
+             else {
+                showNotification("Cadastro realizado com sucesso! Verifique seu email para confirmar a conta.", 'success');
+                // Limpa os campos e volta para a tela de login
+                signupEmailInput.value = '';
+                signupPasswordInput.value = '';
+                signupConfirmPasswordInput.value = '';
+                showLoginButton.click();
+            }
+        });
+
+        loginButton.addEventListener('click', async () => {
+            const email = emailInput.value;
+            const password = passwordInput.value;
+
+            if (!email || !password) {
+                showNotification("Por favor, insira o email e a senha.", 'error');
+                return;
+            }
+
+            const { error } = await supabase.auth.signInWithPassword({ email, password });
+
+            if (error) {
+                console.error(error);
+                showNotification(`Erro no login: ${error.message}`, 'error');
+            }
+        });
+
+        // Adiciona a funcionalidade de login com a tecla Enter nos campos de email e senha
+        emailInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                loginButton.click();
+            }
+        });
+
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                loginButton.click();
+            }
+        });
+
+        resetPasswordButton.addEventListener('click', async () => {
+            const email = emailInput.value;
+            if (!email) {
+                showNotification("Por favor, insira seu email no campo correspondente.", 'error');
+                return;
+            }
+            const redirectToUrl = `${window.location.origin}${window.location.pathname}`;
+
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: redirectToUrl
+            });
+
+            if (error) {
+                console.error(error);
+                if (error.status === 429) {
+                    const waitTimeMatch = error.message.match(/after (\d+) seconds/);
+                    const waitTime = waitTimeMatch ? parseInt(waitTimeMatch[1]) : 60;
+                    showWaitModal(waitTime);
+                } else {
+                    showNotification(`Erro ao redefinir senha: ${error.message}`, 'error');
+                }
+            } else {
+                resetEmailDisplay.textContent = email;
+                resetPasswordModal.classList.remove('hidden');
+                resetPasswordModal.classList.add('flex');
+            }
+        });
+
+        updatePasswordButton.addEventListener('click', async () => {
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+
+            if (newPassword !== confirmPassword) {
+                showNotification("As senhas não coincidem.", 'error');
+                return;
+            }
+            if (newPassword.length < 6) {
+                showNotification("A senha deve ter pelo menos 6 caracteres.", 'error');
+                return;
+            }
+
+            const { error } = await supabase.auth.updateUser({ password: newPassword });
+
+            if (error) {
+                showNotification(`Erro ao atualizar a senha: ${error.message}`, 'error');
+                console.error(error);
+            } else {
+                showNotification("Senha atualizada com sucesso!", 'success');
+                // Aguarda a notificação ser exibida e depois fecha o modal
+                setTimeout(() => {
+                    closeChangePasswordModal();
+                }, 1500);
+            }
+        });
+
+        closeModalButton.addEventListener('click', () => {
+            resetPasswordModal.classList.add('hidden');
+            resetPasswordModal.classList.remove('flex');
+        });
+
+        closeWaitModalButton.addEventListener('click', () => {
+            waitMessageModal.classList.add('hidden');
+            waitMessageModal.classList.remove('flex');
+        });
+
+        // --- NOVOS EVENTOS PARA O MODAL DO PERFIL ---
+
+        profileButton.addEventListener('click', async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session) {
+                profileModal.classList.remove('hidden');
+                profileModal.classList.add('flex');
+            }
+        });
+
+        closeProfileModalButton.addEventListener('click', () => {
+            profileModal.classList.add('hidden');
+            profileModal.classList.remove('flex');
+        });
+
+        // --- LÓGICA DO MODAL DE TROCA DE SENHA ---
+        function openChangePasswordModal() {
+            // Limpa os campos antes de abrir
+            newPasswordInput.value = '';
+            confirmPasswordInput.value = '';
+            changePasswordModal.classList.remove('hidden');
+            changePasswordModal.classList.add('flex');
+        }
+
+        function closeChangePasswordModal() {
+            changePasswordModal.classList.add('hidden');
+            changePasswordModal.classList.remove('flex');
+        }
+
+        closeChangePasswordModalButton.addEventListener('click', closeChangePasswordModal);
+        cancelChangePasswordButton.addEventListener('click', closeChangePasswordModal);
+
+        changePasswordButton.addEventListener('click', () => {
+            profileModal.classList.add('hidden'); // Fecha o modal de perfil
+            profileModal.classList.remove('flex');
+            openChangePasswordModal(); // Abre o novo modal de senha
+        });
+
+        logoutButtonModal.addEventListener('click', async () => {
+            const { error } = await supabase.auth.signOut();
+            if (error) {
+                console.error('Erro ao sair:', error);
+            } else {
+                window.location.reload();
+            }
+        });
+
+        function showDeleteConfirmationModal(id, type, name = '', extraData = {}) {
+            itemToDeleteInfo = { id, type, extraData };
+            const messageEl = document.getElementById('delete-confirm-message');
+
+            if (type === 'song_from_folder') {
+                messageEl.innerHTML = `Tem certeza que deseja remover a música "<strong>${name}</strong>" desta pasta?`;
+            } else if (type === 'folder') {
+                messageEl.innerHTML = `Tem certeza que deseja excluir a pasta "<strong>${name}</strong>"? Todas as músicas contidas nela serão perdidas.`;
+            } else if (type === 'custom_app_permanent') {
+                messageEl.innerHTML = `Tem certeza que deseja excluir permanentemente o aplicativo "<strong>${name}</strong>"? <br>Esta ação não pode ser desfeita.`;
+            }
+            deleteConfirmModal.classList.remove('hidden');
+            deleteConfirmModal.classList.add('flex');
+        }
+
+        function hideDeleteConfirmationModal() {
+            itemToDeleteInfo = null;
+            deleteConfirmModal.classList.add('hidden');
+            deleteConfirmModal.classList.remove('flex');
+        }
+
+        confirmDeleteButton.addEventListener('click', async () => {
+            if (!itemToDeleteInfo) return;
+
+            const { id, type, extraData } = itemToDeleteInfo;
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) return;
+
+            if (type === 'song_from_folder') {
+                const { error } = await supabase.from('musicas_salvas_usuario').delete().match({ id: id, user_id: user.id });
+                if (error) {
+                    console.error('Erro ao remover música da pasta:', error);
+                    showNotification('Não foi possível remover a música.', 'error');
+                } else {
+                    showNotification('Música removida com sucesso!');
+                    await fetchAndDisplayFolderContent(extraData.folderId);
+                }
+            } else if (type === 'folder') {
+                // Primeiro, deleta todas as músicas associadas à pasta
+                const { error: songError } = await supabase.from('musicas_salvas_usuario').delete().match({ pasta_id: id, user_id: user.id });
+                if (songError) {
+                    console.error('Erro ao remover músicas da pasta:', songError);
+                    showNotification('Não foi possível remover as músicas da pasta.', 'error');
+                    hideDeleteConfirmationModal();
+                    return;
+                }
+
+                // Depois, deleta a pasta
+                const { error: folderError } = await supabase.from('pastas').delete().match({ id: id, user_id: user.id });
+                if (folderError) {
+                    console.error('Erro ao excluir pasta:', folderError);
+                    showNotification('Não foi possível excluir a pasta.', 'error');
+                } else {
+                    showNotification('Pasta excluída com sucesso!');
+                    await fetchAndRenderApps(user.id); // Atualiza a grade principal
+                }
+            } else if (type === 'custom_app_permanent') {
+                // Lógica existente para deletar apps permanentemente...
+            }
+            hideDeleteConfirmationModal();
+        });
+
+        cancelDeleteButton.addEventListener('click', () => {
+            hideDeleteConfirmationModal();
+        });
+
+        // --- EVENTOS DO MODAL DE CONFIGURAÇÕES ---
+
+        autoSkipToggle.addEventListener('change', async (e) => {
+            currentUserPreferences.autoSkip = e.target.checked;
+            await saveUserPreferences(currentUserPreferences);
+        });
+
+        // --- LÓGICA DE APLICATIVOS PERSONALIZADOS E FIXOS ---
+        async function renderApps(itemsToRender, itemOrder) {
+            buttonGridContainer.innerHTML = '';
+
+            const sortedItems = [...itemsToRender].sort((a, b) => {
+                const indexA = itemOrder.indexOf(a.id);
+                const indexB = itemOrder.indexOf(b.id);
+
+                if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                if (indexA !== -1) return -1;
+                if (indexB !== -1) return 1;
+                return a.title.localeCompare(b.title);
+            });
+
+            sortedItems.forEach(item => {
+                const itemContainer = document.createElement('div');
+                itemContainer.className = 'app-container';
+                itemContainer.dataset.id = item.id;
+                itemContainer.dataset.title = item.title;
+                itemContainer.dataset.isFixed = item.isFixed;
+                itemContainer.dataset.isFolder = item.isFolder || false;
+                if (item.url) itemContainer.dataset.url = item.url;
+
+                const iconClass = item.isFolder ? 'fas fa-folder' : (item.icon_class || 'fas fa-link');
+                const iconColor = item.isFolder ? '#FFFFFF' : (item.icon_color || '#FFFFFF');
+                const bgStyle = item.isFolder
+                    ? `background-color: transparent; box-shadow: none;`
+                    : `background-color: ${item.bg_color || '#333333'};`;
+
+                itemContainer.draggable = true;
+                itemContainer.innerHTML = `
+                    <div class="grid-item" style="${bgStyle}">
+                        <i class="${iconClass} grid-item-icon" style="color: ${iconColor};"></i>
+                    </div>
+                    <span class="grid-item-label text-theme noselect">${item.title}</span>
+                `;
+
+                itemContainer.addEventListener('click', async () => {
+                    if (isDragging) return;
+
+                    if (item.isFolder) {
+                        // Ação para Pastas: Abrir o NOVO modal de ações
+                        showFolderActionModal(item.id, item.title);
+                    } else {
+                        // Ação para Aplicativos (lógica inalterada)
+                        showAppActionBar(item);
+                    }
+                });
+
+                buttonGridContainer.appendChild(itemContainer);
+            });
+        }
+
+        // --- FUNÇÕES PARA O MODAL DE CONTEÚDO DA PASTA ---
+
+        async function fetchAndDisplayFolderContent(folderId) {
+            folderMusicListContainer.innerHTML = '<p class="text-center text-gray-500">Carregando músicas...</p>';
+
+            const { data: musicas, error } = await supabase
+                .from('musicas_salvas_usuario')
+                .select('*')
+                .eq('pasta_id', folderId)
+                .order('created_at', { ascending: true });
+
+            if (error) {
+                console.error('Erro ao buscar músicas salvas:', error);
+                folderMusicListContainer.innerHTML = '<p class="text-center text-red-500">Erro ao carregar as músicas.</p>';
+                return;
+            }
+
+            if (!musicas || musicas.length === 0) {
+                folderMusicListContainer.innerHTML = '<p class="text-center text-gray-500">Esta pasta está vazia.</p>';
+                return;
+            }
+
+            folderMusicListContainer.innerHTML = '';
+
+            musicas.forEach(musica => {
+                const musicItem = document.createElement('div');
+                musicItem.className = 'music-item flex items-center';
+
+                // Popula o dataset para o leitor de música
+                musicItem.dataset.id = musica.id;
+                musicItem.dataset.src = musica.musica_url;
+                musicItem.dataset.title = musica.musica_titulo;
+                musicItem.dataset.artist = musica.musica_artista;
+                musicItem.dataset.albumArt = musica.imagem_url;
+                musicItem.dataset.album = musica.musica_album;
+
+                const musicInfo = `
+                    <div class="music-info flex-grow text-theme">
+                        <p class="music-artist-display font-bold">${musica.musica_artista || 'Artista Desconhecido'}</p>
+                        <p class="music-title-display text-sm">${musica.musica_titulo || 'Título Desconhecido'}</p>
+                        <p class="music-album-display italic text-gray-500">${musica.musica_album || ''}</p>
+                    </div>`;
+
+                // Botão para adicionar a outra pasta
+                const addButton = `
+                    <button
+                        class="add-to-another-folder-btn ml-4 px-3 py-1 text-lg transition-colors"
+                        style="color: var(--cor-destaque);"
+                        data-src="${musica.musica_url}"
+                        data-title="${musica.musica_titulo}"
+                        data-artist="${musica.musica_artista}"
+                        data-album-art="${musica.imagem_url || ''}"
+                        data-album="${musica.musica_album || ''}"
+                    >
+                        <i class="fas fa-plus"></i>
+                    </button>`;
+
+                // Botão para remover da pasta atual
+                const removeButton = `
+                    <button
+                        class="remove-from-folder-btn ml-2 px-3 py-1 text-lg text-red-500 hover:text-red-700 transition-colors"
+                        data-song-id="${musica.id}"
+                        data-folder-id="${folderId}"
+                        data-song-title="${musica.musica_titulo}"
+                    >
+                        <i class="fas fa-trash-alt"></i>
+                    </button>`;
+
+                musicItem.innerHTML = musicInfo + addButton + removeButton;
+                folderMusicListContainer.appendChild(musicItem);
+            });
+        }
+
+        function showFolderContentModal(folderId, folderTitle) {
+            folderContentTitle.textContent = folderTitle;
+            folderContentModal.classList.remove('hidden');
+            folderContentModal.classList.add('flex');
+            fetchAndDisplayFolderContent(folderId); // Chama a função para buscar o conteúdo
+        }
+
+        function hideFolderContentModal() {
+            folderContentModal.classList.add('hidden');
+            folderContentModal.classList.remove('flex');
+            folderMusicListContainer.innerHTML = ''; // Limpa o conteúdo ao fechar
+        }
+
+        closeFolderContentModalBtn.addEventListener('click', hideFolderContentModal);
+
+        // Listener de eventos consolidado para a lista de músicas da pasta
+        folderMusicListContainer.addEventListener('click', (e) => {
+            const removeButton = e.target.closest('.remove-from-folder-btn');
+            const addButton = e.target.closest('.add-to-another-folder-btn');
+            const musicItem = e.target.closest('.music-item');
+
+            if (removeButton) {
+                const songId = removeButton.dataset.songId;
+                const songTitle = removeButton.dataset.songTitle;
+                const folderId = removeButton.dataset.folderId;
+                showDeleteConfirmationModal(songId, 'song_from_folder', songTitle, { folderId });
+            } else if (addButton) {
+                openAddToFolderModal({ ...addButton.dataset });
+            } else if (musicItem && musicItem.dataset.src) {
+                // Toca a música apenas se o clique não foi em um dos botões
+                setupQueueAndPlay(musicItem, folderMusicListContainer);
+            }
+        });
+
+
+        // --- LÓGICA REESTRUTURADA PARA O APP EXPLORAR ---
+
+        let artistListCache = null; // Cache para a lista inicial de artistas
+        let artistCache = {}; // Cache para os dados dos artistas já carregados
+        let navigationState = []; // Pilha para gerenciar o estado da navegação
+
+        // --- LÓGICA DE PESQUISA DO EXPLORAR (Refatorada com Debounce) ---
+
+        // Função Debounce para otimizar a chamada de funções que ocorrem repetidamente
+        function debounce(func, delay) {
+            let timeout;
+            return function(...args) {
+                const context = this;
+                clearTimeout(timeout);
+                timeout = setTimeout(() => func.apply(context, args), delay);
+            };
+        }
+
+        // A função que executa a busca unificada (com lógica avançada)
+        async function performUnifiedSearch(searchTerm) {
+            // 1. Atualiza a UI para o estado de busca
+            exploreContentContainer.innerHTML = `<div class="text-center text-gray-500 p-4"><i class="fas fa-spinner fa-spin text-2xl"></i></div>`;
+            exploreTitle.textContent = searchTerm;
+            exploreBackButton.classList.add('hidden');
+            navigationState = [{ view: 'search' }];
+
+            // 2. Prepara a consulta para as músicas
+            const searchWords = searchTerm.split(' ').filter(word => word.length > 0);
+            let songsQuery = supabase.from('Musicas').select('*');
+            searchWords.forEach(word => {
+                const pattern = `%${word}%`;
+                songsQuery = songsQuery.or(`"Nome - Musica".ilike.${pattern},"Nome - Artista".ilike.${pattern},"Nome - Album".ilike.${pattern}`);
+            });
+            songsQuery = songsQuery.limit(50); // Limita os resultados de músicas
+
+            // 3. Prepara a consulta para os artistas
+            const artistPattern = `%${searchTerm}%`;
+            let artistsQuery = supabase
+                .from('Musicas')
+                .select('"Nome - Artista"')
+                .ilike('"Nome - Artista"', artistPattern)
+                .limit(10); // Limita os resultados de artistas
+
+            // 4. Executa as duas buscas em paralelo
+            const [
+                { data: songsData, error: songsError },
+                { data: artistsData, error: artistsError }
+            ] = await Promise.all([
+                songsQuery,
+                artistsQuery
+            ]);
+
+            if (songsError || artistsError) {
+                console.error('Erro na busca por músicas:', songsError);
+                console.error('Erro na busca por artistas:', artistsError);
+                exploreContentContainer.innerHTML = '<p class="text-center text-red-500">Erro ao realizar a busca.</p>';
+                return;
+            }
+
+            // 5. Processa e renderiza os resultados
+            const uniqueArtists = artistsData ? [...new Set(artistsData.map(a => a['Nome - Artista']))] : [];
+
+            // A função renderSearchResults será criada na próxima etapa
+            renderSearchResults(uniqueArtists, songsData);
+        }
+
+        // --- NOVA FUNÇÃO PARA RENDERIZAR RESULTADOS DA BUSCA ---
+        function renderSearchResults(artists, songs) {
+            exploreContentContainer.innerHTML = '';
+
+            if (artists.length === 0 && (!songs || songs.length === 0)) {
+                exploreContentContainer.innerHTML = '<p class="text-center text-gray-500">Nenhum resultado encontrado.</p>';
+                return;
+            }
+
+            // Renderiza a seção de artistas
+            if (artists.length > 0) {
+                const artistsHeader = document.createElement('h3');
+                artistsHeader.className = 'text-xl font-bold mb-3';
+                artistsHeader.textContent = 'Artistas';
+                artistsHeader.style.color = 'var(--cor-destaque)';
+                exploreContentContainer.appendChild(artistsHeader);
+
+                artists.forEach(artistName => {
+                    const item = document.createElement('div');
+                    item.className = 'music-item';
+                    item.innerHTML = `<p class="music-artist-display">${artistName}</p>`;
+                    item.addEventListener('click', () => {
+                        navigationState.push({ view: 'songsByArtist', artist: artistName });
+                        updateExploreView();
+                    });
+                    exploreContentContainer.appendChild(item);
+                });
+            }
+
+            // Renderiza a seção de músicas
+            if (songs && songs.length > 0) {
+                const songsHeader = document.createElement('h3');
+                songsHeader.className = 'text-xl font-bold mb-3 mt-6';
+                songsHeader.textContent = 'Músicas';
+                songsHeader.style.color = 'var(--cor-destaque)';
+                exploreContentContainer.appendChild(songsHeader);
+
+                songs.forEach(song => renderSongItem(song));
+            }
+        }
+
+        // Handler da busca com debounce
+        const debouncedSearch = debounce(async (searchTerm) => {
+            if (searchTerm.length > 2) {
+                await performUnifiedSearch(searchTerm);
+            } else if (searchTerm.length === 0) {
+                // Se a busca for limpa, volta para a visão inicial de artistas
+                navigationState = [];
+                updateExploreView();
+            }
+        }, 300); // Aguarda 300ms após o usuário parar de digitar
+
+        exploreSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.trim();
+            debouncedSearch(searchTerm);
+        });
+
+
+        // --- NOVO: Referências do Modal de Ações da Pasta ---
+        const folderActionModal = document.getElementById('folder-action-modal');
+        const folderActionTitle = document.getElementById('folder-action-title');
+        const closeFolderActionModalBtn = document.getElementById('close-folder-action-modal');
+        const folderActionOpenBtn = document.getElementById('folder-action-open');
+        const folderActionEditBtn = document.getElementById('folder-action-edit');
+        const folderActionDeleteBtn = document.getElementById('folder-action-delete');
+
+        // Etapa 1: Buscar a lista COMPLETA de artistas com paginação
+        async function fetchAndDisplayMusic() {
+            exploreContentContainer.innerHTML = `<div class="text-center text-gray-500 p-4"><i class="fas fa-spinner fa-spin text-2xl"></i></div>`;
+
+            let allArtists = [];
+            let page = 0;
+            const pageSize = 1000; // O limite padrão do Supabase
+
+            while (true) {
+                const { data, error } = await supabase
+                    .from('Musicas')
+                    .select('"Nome - Artista"')
+                    .range(page * pageSize, (page + 1) * pageSize - 1);
+
+                if (error) {
+                    console.error('Erro ao buscar artistas:', error);
+                    exploreContentContainer.innerHTML = '<p class="text-center text-red-500">Erro ao carregar artistas.</p>';
+                    return;
+                }
+
+                if (data.length > 0) {
+                    const artistNames = data.map(item => item['Nome - Artista']);
+                    allArtists.push(...artistNames);
+                }
+
+                // Se a página retornou menos que o tamanho máximo, é a última página
+                if (data.length < pageSize) {
+                    break;
+                }
+
+                page++;
+            }
+
+            // Processa a lista completa para obter artistas únicos e ordenados
+            const uniqueArtists = [...new Set(allArtists)];
+            artistListCache = uniqueArtists.sort();
+            renderArtists(artistListCache);
+        }
+
+        // Etapa 2: Renderizar a lista de artistas
+        function renderArtists(artists) {
+            exploreContentContainer.innerHTML = '';
+            artists.forEach(artist => {
+                const item = document.createElement('div');
+                item.className = 'music-item';
+                item.innerHTML = `<p class="music-artist-display">${artist}</p>`;
+                item.addEventListener('click', () => {
+                    navigationState.push({ view: 'songsByArtist', artist: artist });
+                    updateExploreView();
+                });
+                exploreContentContainer.appendChild(item);
+            });
+        }
+
+        // Etapa 3: Buscar o conteúdo COMPLETO de um artista com paginação
+        async function fetchAndDisplayArtistContent(artist) {
+            exploreContentContainer.innerHTML = `<div class="text-center text-gray-500 p-4"><i class="fas fa-spinner fa-spin text-2xl"></i></div>`;
+
+            // Verifica o cache primeiro
+            if (artistCache[artist]) {
+                renderArtistSongs(artistCache[artist]);
+                return;
+            }
+
+            let allSongs = [];
+            let page = 0;
+            const pageSize = 1000;
+
+            while (true) {
+                const { data, error } = await supabase
+                    .from('Musicas')
+                    .select('*')
+                    .filter('"Nome - Artista"', 'eq', artist)
+                    .range(page * pageSize, (page + 1) * pageSize - 1);
+
+                if (error) {
+                    console.error(`Erro ao buscar músicas para ${artist}:`, error);
+                    exploreContentContainer.innerHTML = '<p class="text-center text-red-500">Erro ao carregar o conteúdo do artista.</p>';
+                    return;
+                }
+
+                if (data.length > 0) {
+                    allSongs.push(...data);
+                }
+
+                if (data.length < pageSize) {
+                    break;
+                }
+
+                page++;
+            }
+
+            if (allSongs.length === 0) {
+                exploreContentContainer.innerHTML = '<p class="text-center text-gray-500">Nenhuma música encontrada para este artista.</p>';
+                return;
+            }
+
+            // Armazena a lista completa de músicas no cache e renderiza
+            artistCache[artist] = allSongs;
+            renderArtistSongs(allSongs);
+        }
+
+        // Renderiza a lista de todas as músicas de um artista
+        function renderArtistSongs(songs) {
+            exploreContentContainer.innerHTML = '';
+            songs.forEach(song => {
+                // Adiciona o nome do artista ao objeto da música antes de renderizar
+                if (!song['Nome - Artista']) {
+                    const currentState = navigationState[navigationState.length - 1];
+                    if (currentState && currentState.view === 'songsByArtist') {
+                        song['Nome - Artista'] = currentState.artist;
+                    }
+                }
+                renderSongItem(song);
+            });
+        }
+
+        // Função auxiliar para criar um item de música
+        function renderSongItem(song) {
+            const musicItem = document.createElement('div');
+            // Adicionado 'flex items-center' para alinhar o botão à direita
+            musicItem.className = 'music-item flex items-center';
+
+            // Preenche os data attributes para o player
+            musicItem.dataset.src = song.Musica;
+            musicItem.dataset.title = song['Nome - Musica'];
+            musicItem.dataset.artist = song['Nome - Artista'];
+            musicItem.dataset.albumArt = song.Imagem;
+            musicItem.dataset.album = song['Nome - Album'];
+
+            const musicInfo = `
+                <div class="music-info flex-grow">
+                    <p class="music-artist-display">${song['Nome - Artista'] || 'Artista Desconhecido'}</p>
+                    <p class="music-title-display">${song['Nome - Musica'] || 'Título Desconhecido'}</p>
+                    <p class="music-album-display text-xs">${song['Nome - Album'] || ''}</p>
+                </div>`;
+
+            // Estilo do botão de adicionar padronizado para corresponder ao de excluir
+            const addButton = `<button class="add-to-folder-plus-btn ml-4 px-3 py-1 text-lg transition-colors" style="color: var(--cor-destaque);"><i class="fas fa-plus"></i></button>`;
+
+            musicItem.innerHTML = musicInfo + addButton;
+
+            // Adiciona os data attributes ao botão também, crucial para a delegação de eventos
+            const buttonEl = musicItem.querySelector('.add-to-folder-plus-btn');
+            Object.keys(musicItem.dataset).forEach(key => {
+                buttonEl.dataset[key] = musicItem.dataset[key];
+            });
+
+            exploreContentContainer.appendChild(musicItem);
+        }
+
+        // Função central para controlar a visualização no modal Explorar
+        function updateExploreView() {
+            const currentState = navigationState[navigationState.length - 1];
+
+            if (!currentState) { // Estado inicial ou voltou para o início
+                exploreTitle.textContent = 'Explorar';
+                exploreBackButton.classList.add('hidden');
+                renderArtists(artistListCache || []); // Usa o cache ao voltar
+            } else if (currentState.view === 'songsByArtist') {
+                exploreTitle.textContent = currentState.artist;
+                exploreBackButton.classList.remove('hidden');
+                fetchAndDisplayArtistContent(currentState.artist);
+            }
+        }
+
+        let songDataForModal = null; // Armazena os dados da música para o modal
+
+        // --- LÓGICA DO NOVO MODAL "ADICIONAR À PASTA" (E PLAYER) ---
+        async function openAddToFolderModal(songData) {
+            songDataForModal = songData;
+
+            addToFolderModal.classList.remove('hidden');
+            addToFolderModal.classList.add('flex');
+            confirmAddToFolderModalButton.disabled = false;
+            modalFolderSelect.innerHTML = '<option>Carregando pastas...</option>';
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                modalFolderSelect.innerHTML = '<option>Erro: Usuário não encontrado</option>';
+                return;
+            }
+
+            // Busca as pastas e a sua ordem personalizada em paralelo para otimizar
+            const [foldersResponse, orderResponse] = await Promise.all([
+                supabase.from('pastas').select('id, title').eq('user_id', user.id),
+                supabase.from('user_app_order').select('app_ids').eq('user_id', user.id).single()
+            ]);
+
+            const { data: folders, error: foldersError } = foldersResponse;
+            const { data: orderData, error: orderError } = orderResponse; // O erro na ordem não é crítico
+
+            if (foldersError) {
+                console.error('Erro ao buscar pastas:', foldersError);
+                modalFolderSelect.innerHTML = '<option>Erro ao carregar pastas</option>';
+                return;
+            }
+
+            const appOrder = orderError ? [] : (orderData?.app_ids || []);
+
+            modalFolderSelect.innerHTML = '';
+            if (folders && folders.length > 0) {
+                // Ordena as pastas de acordo com a ordem salva pelo usuário
+                const sortedFolders = [...folders].sort((a, b) => {
+                    const indexA = appOrder.indexOf(a.id);
+                    const indexB = appOrder.indexOf(b.id);
+
+                    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                    if (indexA !== -1) return -1;
+                    if (indexB !== -1) return 1;
+                    return a.title.localeCompare(b.title); // Fallback para ordem alfabética
+                });
+
+                sortedFolders.forEach(folder => {
+                    const option = document.createElement('option');
+                    option.value = folder.id;
+                    option.textContent = folder.title;
+                    modalFolderSelect.appendChild(option);
+                });
+                const lastFolderId = localStorage.getItem('lastSelectedFolderId');
+                if (lastFolderId) {
+                    modalFolderSelect.value = lastFolderId;
+                }
+            } else {
+                modalFolderSelect.innerHTML = '<option value="">Nenhuma pasta criada</option>';
+                confirmAddToFolderModalButton.disabled = true;
+            }
+        }
+
+        // Listener de eventos consolidado para o container de conteúdo do Explorar
+        exploreContentContainer.addEventListener('click', async (e) => {
+            const addButton = e.target.closest('.add-to-folder-plus-btn');
+            const musicItem = e.target.closest('.music-item');
+
+            // Prioridade 1: O botão de adicionar foi clicado?
+            if (addButton) {
+                openAddToFolderModal({ ...addButton.dataset });
+                return; // Impede que o clique no botão também toque a música
+            }
+
+            // Prioridade 2: O item de música foi clicado (mas não o botão de adicionar)?
+            if (musicItem) {
+                 // A navegação de artista (sem data-src) é tratada em 'renderArtists'
+                 // Este listener agora só precisa tocar a música se houver uma fonte.
+                if (musicItem.dataset.src) {
+                    setupQueueAndPlay(musicItem, exploreContentContainer);
+                }
+            }
+        });
+
+        cancelAddToFolderModalButton.addEventListener('click', () => {
+            addToFolderModal.classList.add('hidden');
+            addToFolderModal.classList.remove('flex');
+            songDataForModal = null; // Limpa os dados da música
+            confirmAddToFolderModalButton.disabled = false; // Garante que o botão seja reativado
+        });
+
+        confirmAddToFolderModalButton.addEventListener('click', async () => {
+            const selectedFolderId = modalFolderSelect.value;
+            if (!songDataForModal || !selectedFolderId) {
+                showNotification('Por favor, selecione uma pasta.', 'error');
+                return;
+            }
+
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                showNotification('Usuário não autenticado.', 'error');
+                return;
+            }
+
+            // Verifica se a música já existe na pasta
+            const { data: existingSongs, error: fetchError } = await supabase
+                .from('musicas_salvas_usuario')
+                .select('id')
+                .eq('pasta_id', selectedFolderId)
+                .eq('musica_url', songDataForModal.src);
+
+            if (fetchError) {
+                console.error('Erro ao verificar música existente:', fetchError);
+                showNotification('Ocorreu um erro. Tente novamente.', 'error');
+                return;
+            }
+
+            if (existingSongs && existingSongs.length > 0) {
+                showNotification('Esta música já está nesta pasta.', 'error');
+                return;
+            }
+
+            // Insere a nova música
+            const newSong = {
+                pasta_id: selectedFolderId,
+                user_id: user.id,
+                musica_titulo: songDataForModal.title,
+                musica_artista: songDataForModal.artist,
+                musica_album: songDataForModal.album,
+                musica_url: songDataForModal.src,
+                imagem_url: songDataForModal.albumArt
+            };
+
+            const { error: insertError } = await supabase
+                .from('musicas_salvas_usuario')
+                .insert(newSong);
+
+            if (insertError) {
+                console.error('Erro ao salvar música:', insertError);
+                showNotification('Não foi possível adicionar a música.', 'error');
+            } else {
+                showNotification('Música adicionada com sucesso!');
+                localStorage.setItem('lastSelectedFolderId', selectedFolderId); // Salva a escolha
+                cancelAddToFolderModalButton.click(); // Fecha o modal
+            }
+        });
+
+        async function fetchAndRenderApps(userId) {
+            if (!userId) return;
+
+            const [profileResponse, appOrderResponse, customAppsResponse, foldersResponse] = await Promise.all([
+                supabase.from('profiles').select('preferences').eq('id', userId).single(),
+                supabase.from('user_app_order').select('app_ids').eq('user_id', userId).single(),
+                supabase.from('custom_apps').select('*').eq('user_id', userId),
+                supabase.from('pastas').select('*').eq('user_id', userId)
+            ]);
+
+            const { data: profile, error: profileError } = profileResponse;
+            const preferences = profileError ? {} : profile.preferences || {};
+            const removedApps = preferences.removed_apps || [];
+            const appCustomizations = preferences.app_customizations || {};
+
+            const { data: appOrderData, error: appOrderError } = appOrderResponse;
+            const appOrder = appOrderError ? [] : appOrderData.app_ids || [];
+
+            const fixedApps = fixedAppsMasterList.map(app => {
+                const customization = appCustomizations[app.id] || {};
+                return {
+                    ...app,
+                    title: customization.title || app.title,
+                    icon_class: customization.icon_class || app.iconClass,
+                    bg_color: customization.bg_color,
+                    icon_color: customization.icon_color,
+                };
+            });
+
+            const { data: customApps, error: fetchAppsError } = customAppsResponse;
+            if (fetchAppsError) {
+                console.error('Erro ao buscar apps existentes:', fetchAppsError);
+            }
+
+            const { data: folders, error: fetchFoldersError } = foldersResponse;
+            if (fetchFoldersError) {
+                console.error('Erro ao buscar pastas:', fetchFoldersError);
+            }
+
+            const foldersWithMarker = (folders || []).map(folder => ({ ...folder, isFolder: true }));
+
+            const allAvailableItems = [...fixedApps, ...(customApps || []), ...foldersWithMarker];
+            const visibleItems = allAvailableItems.filter(item => !removedApps.includes(item.id));
+
+            renderApps(visibleItems, appOrder);
+        }
+
+        async function saveAppOrder(userId) {
+            if (!userId) return;
+            const appIds = [...buttonGridContainer.children].map(appContainer => appContainer.dataset.id);
+
+            const { error } = await supabase
+                .from('user_app_order')
+                .upsert({ user_id: userId, app_ids: appIds }, { onConflict: 'user_id' });
+
+            if (error) {
+                console.error('Erro ao salvar a ordem dos apps:', error);
+            }
+        }
+
+        function showAppActionBar(app) {
+            // Armazena os dados do app diretamente na faixa de ações
+            appActionBar.dataset.id = app.id;
+            appActionBar.dataset.title = app.title;
+            appActionBar.dataset.url = app.url || '';
+            appActionBar.dataset.isFixed = app.isFixed;
+            appActionBar.dataset.iconClass = app.icon_class || '';
+            appActionBar.dataset.bgColor = app.bg_color || '';
+            appActionBar.dataset.iconColor = app.icon_color || '';
+
+            // NOVO: Lógica para destacar o ícone selecionado
+            // 1. Remove a seleção de qualquer outro item
+            const currentlySelected = buttonGridContainer.querySelector('.grid-item.selected');
+            if (currentlySelected) {
+                currentlySelected.classList.remove('selected');
+            }
+
+            // 2. Adiciona a seleção ao item clicado
+            const appElement = buttonGridContainer.querySelector(`.app-container[data-id="${app.id}"]`);
+            if (appElement) {
+                const gridItem = appElement.querySelector('.grid-item');
+                if (gridItem) {
+                    gridItem.classList.add('selected');
+                }
+            }
+
+
+            // Mostra a faixa de ações
+            appActionBar.classList.remove('hidden');
+            appActionBar.classList.add('flex');
+        }
+
+        function hideAppActionBar() {
+            // Esconde a faixa de ações
+            appActionBar.classList.add('hidden');
+            appActionBar.classList.remove('flex');
+
+            // NOVO: Remove a seleção de qualquer item que a tenha
+            const currentlySelected = buttonGridContainer.querySelector('.grid-item.selected');
+            if (currentlySelected) {
+                currentlySelected.classList.remove('selected');
+            }
+        }
+
+        function showAddAppModal(appData = null) {
+            if (appData) { // Modo de Edição
+                addAppModal.dataset.editId = appData.id;
+                document.getElementById('add-app-title').textContent = 'Editar Pasta';
+                appTitleInput.value = appData.title;
+
+            } else { // Modo de Adição
+                addAppModal.removeAttribute('data-edit-id');
+                document.getElementById('add-app-title').textContent = 'Criar Pasta';
+                appTitleInput.value = '';
+            }
+            addAppModal.classList.remove('hidden');
+            addAppModal.classList.add('flex');
+            appTitleInput.focus();
+        }
+
+        function hideAddAppModal() {
+            addAppModal.classList.add('hidden');
+            addAppModal.classList.remove('flex');
+            addAppModal.removeAttribute('data-edit-id');
+            appTitleInput.value = '';
+        }
+
+        async function saveDetails() {
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) return;
+
+            const itemId = addAppModal.dataset.editId;
+            const folderDetails = {
+                title: appTitleInput.value.trim(),
+            };
+
+            if (!folderDetails.title) {
+                console.error('O nome da pasta é obrigatório.');
+                return;
+            }
+
+            if (itemId) { // Editar pasta existente
+                const { error } = await supabase.from('pastas').update(folderDetails).match({ id: itemId, user_id: user.id });
+                if (error) console.error('Erro ao atualizar pasta:', error);
+            } else { // Adicionar nova pasta
+                const { error } = await supabase.from('pastas').insert({ ...folderDetails, user_id: user.id });
+                if (error) console.error('Erro ao criar pasta:', error);
+            }
+
+            await fetchAndRenderApps(user.id);
+            hideAddAppModal();
+        }
+
+        async function deleteCustomApp(appId) {
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) return;
+
+            const { error } = await supabase.from('custom_apps').delete().match({ id: appId, user_id: user.id });
+
+            if (error) {
+                console.error('Erro ao deletar aplicativo:', error);
+            } else {
+                await fetchAndRenderApps(user.id);
+            }
+        }
+
+        function showEditFixedAppModal(appId, currentTitle) {
+            editFixedAppModal.dataset.id = appId;
+            fixedAppNameInput.value = currentTitle;
+            editFixedAppModal.classList.remove('hidden');
+            editFixedAppModal.classList.add('flex');
+            fixedAppNameInput.focus();
+        }
+
+        function hideEditFixedAppModal() {
+            editFixedAppModal.classList.add('hidden');
+            editFixedAppModal.classList.remove('flex');
+        }
+
+        async function renderTrashList() {
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!user) return;
+
+            // Fetch preferences and custom apps in parallel
+            const [profileResponse, customAppsResponse] = await Promise.all([
+                supabase.from('profiles').select('preferences').eq('id', user.id).single(),
+                supabase.from('custom_apps').select('*').eq('user_id', user.id)
+            ]);
+
+            const { data: profileData, error: profileError } = profileResponse;
+            if (profileError && profileError.code !== 'PGRST116') { // PGRST116 means no rows found, which is fine
+                console.error('Error fetching profile for trash:', profileError);
+                return;
+            }
+
+            const prefs = profileData?.preferences || {};
+            const removedIds = prefs.removed_apps || [];
+            const appCustomizations = prefs.app_customizations || {};
+
+            trashListContainer.innerHTML = '';
+            if (removedIds.length === 0) {
+                trashListContainer.innerHTML = '<p class="text-center text-gray-500">O baú está vazio.</p>';
+                return;
+            }
+
+            // Prepare the list of all possible apps (fixed and custom)
+            const fixedApps = fixedAppsMasterList.map(app => {
+                const customization = appCustomizations[app.id] || {};
+                return {
+                    ...app,
+                    title: customization.title || app.title,
+                    icon_class: customization.icon_class || app.iconClass,
+                };
+            });
+
+            const { data: customApps, error: customAppsError } = customAppsResponse;
+            if (customAppsError) {
+                console.error('Error fetching custom apps for trash:', customAppsError);
+            }
+
+            const allApps = [...fixedApps, ...(customApps || [])];
+
+            // Filter to get only the removed apps
+            const removedApps = allApps.filter(app => removedIds.includes(app.id));
+
+            removedApps.forEach(app => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'flex items-center justify-between p-3 bg-white rounded-lg shadow';
+
+                // Define the buttons based on whether the app is fixed or custom
+                const buttonsHtml = `
+                    <div class="flex items-center space-x-2">
+                        <button data-id="${app.id}" class="restore-app-button w-10 h-10 flex items-center justify-center rounded-full bg-green-500 text-white hover:bg-green-600 transition-colors" title="Tirar do baú">
+                            <i class="fas fa-undo"></i>
+                        </button>
+                        ${!app.isFixed ? `<button data-id="${app.id}" data-title="${app.title}" class="delete-app-permanently-button w-10 h-10 flex items-center justify-center rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors" title="Excluir Permanentemente">
+                            <i class="fas fa-trash"></i>
+                        </button>` : ''}
+                    </div>
+                `;
+
+                itemEl.innerHTML = `
+                    <div class="flex items-center space-x-3">
+                        <i class="${app.icon_class || app.iconClass} text-2xl text-gray-600"></i>
+                        <span class="font-semibold text-theme">${app.title}</span>
+                    </div>
+                    ${buttonsHtml}
+                `;
+                trashListContainer.appendChild(itemEl);
+            });
+        }
+
+
+        // --- LÓGICA DE ARRASTAR E SOLTAR (DRAG AND DROP) ---
+        let draggedItem = null;
+
+        buttonGridContainer.addEventListener('dragstart', e => {
+            const draggable = e.target.closest('.app-container');
+            if (draggable) {
+                isDragging = true;
+                draggedItem = draggable;
+                // Adiciona um pequeno atraso para evitar que o elemento pisque
+                setTimeout(() => {
+                    draggable.classList.add('dragging');
+                }, 0);
+            }
+        });
+
+        buttonGridContainer.addEventListener('dragend', async e => {
+            const draggable = e.target.closest('.app-container');
+            if (draggable) {
+                isDragging = false;
+                draggable.classList.remove('dragging');
+                draggedItem = null;
+
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    await saveAppOrder(user.id);
+                }
+            }
+        });
+
+        buttonGridContainer.addEventListener('dragover', e => {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(buttonGridContainer, e.clientY);
+            const draggable = document.querySelector('.dragging');
+            if (draggable) {
+                if (afterElement == null) {
+                    buttonGridContainer.appendChild(draggable);
+                } else {
+                    buttonGridContainer.insertBefore(draggable, afterElement);
+                }
+            }
+        });
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.app-container:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        // --- NOVOS EVENTOS DE APLICATIVOS ---
+        addAppButton.addEventListener('click', () => showAddAppModal());
+        closeAddAppModalButton.addEventListener('click', hideAddAppModal);
+        cancelAddAppButton.addEventListener('click', hideAddAppModal);
+        saveAppButton.addEventListener('click', saveDetails);
+
+        openAppButton.addEventListener('click', async () => {
+            const appId = appActionBar.dataset.id;
+            const appUrl = appActionBar.dataset.url;
+            hideAppActionBar();
+
+            if (appId === 'explore-app') {
+                navigationState = [];
+                exploreModal.classList.remove('hidden');
+                exploreModal.classList.add('flex');
+                await fetchAndDisplayMusic();
+            } else if (appUrl) {
+                window.open(appUrl, '_blank');
+            }
+        });
+
+        exploreBackButton.addEventListener('click', () => {
+            navigationState.pop();
+            updateExploreView();
+        });
+
+
+        // --- LÓGICA DO PLAYER EXPANSÍVEL ---
+
+        // Abrir o player em tela cheia
+        musicPlayer.addEventListener('click', () => {
+            // Copia as informações do player minimizado para o de tela cheia
+            fullscreenAlbumArt.src = playerAlbumArt.src;
+            fullscreenSongTitle.textContent = playerSongTitle.textContent;
+            fullscreenArtistName.textContent = playerArtistName.textContent;
+
+            updateRepeatModeButton(); // Garante que o botão de repetir esteja no estado correto
+
+            fullscreenPlayer.classList.remove('hidden');
+            fullscreenPlayer.classList.add('flex');
+        });
+
+        // Fechar o player em tela cheia
+        closeFullscreenPlayerBtn.addEventListener('click', () => {
+            fullscreenPlayer.classList.add('hidden');
+            fullscreenPlayer.classList.remove('flex');
+        });
+
+        // Sincronização dos controles personalizados
+        playerAudio.addEventListener('playing', () => {
+            if (autoSkipTimeout) {
+                clearTimeout(autoSkipTimeout);
+                autoSkipTimeout = null;
+            }
+        });
+
+        playPauseBtn.addEventListener('click', () => {
+            if (playerAudio.paused) {
+                playerAudio.play();
+            } else {
+                playerAudio.pause();
+            }
+        });
+
+        playerAudio.addEventListener('play', () => {
+            playPauseBtn.innerHTML = '<i class="fas fa-pause text-xl"></i>';
+        });
+
+        playerAudio.addEventListener('pause', () => {
+            playPauseBtn.innerHTML = '<i class="fas fa-play"></i>';
+        });
+
+        // Função para formatar o tempo de segundos para MM:SS
+        function formatTime(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${minutes}:${secs < 10 ? '0' : ''}${secs}`;
+        }
+
+        // Atualiza a barra de progresso e os tempos
+        playerAudio.addEventListener('timeupdate', () => {
+            const { currentTime, duration } = playerAudio;
+            if (duration) {
+                // Atualiza o valor do slider
+                const progressValue = (currentTime / duration) * 100;
+                progressSlider.value = progressValue;
+                currentTimeDisplay.textContent = formatTime(currentTime);
+            }
+        });
+
+        // Define a duração total quando os metadados da música são carregados
+        playerAudio.addEventListener('loadedmetadata', () => {
+            durationDisplay.textContent = formatTime(playerAudio.duration);
+            progressSlider.value = 0; // Reseta o slider no início da música
+
+            // Agora que temos a duração, podemos buscar a letra.
+            if (currentSong) {
+                const durationInSeconds = Math.round(playerAudio.duration);
+                fetchAndDisplayLyrics(currentSong.artist, currentSong.title, currentSong.album, durationInSeconds);
+            }
+        });
+
+        // Lida com o que acontece quando uma música termina
+        playerAudio.addEventListener('ended', () => {
+            if (repeatMode === 'repeat-one') {
+                playSong(currentSong); // Toca a mesma música novamente
+            } else {
+                playNextSong(); // Comportamento padrão para os outros modos
+            }
+        });
+
+        // Permite arrastar o slider para pular para um ponto da música
+        progressSlider.addEventListener('input', () => {
+            const duration = playerAudio.duration;
+            if (duration) {
+                const newTime = (progressSlider.value / 100) * duration;
+                playerAudio.currentTime = newTime;
+            }
+        });
+
+
+        // --- FUNÇÕES DE CONTROLE DE REPRODUÇÃO E FILA ---
+        // --- NOVO: Lógica para o Modal de Ações da Pasta ---
+        // --- NOVO: Lógica de Pesquisa na Pasta ---
+        folderSearchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const musicItems = folderMusicListContainer.querySelectorAll('.music-item');
+
+            musicItems.forEach(item => {
+                const artist = item.querySelector('.music-artist-display').textContent.toLowerCase();
+                const title = item.querySelector('.music-title-display').textContent.toLowerCase();
+
+                if (artist.includes(searchTerm) || title.includes(searchTerm)) {
+                    item.style.display = 'flex'; // Mostra o item se corresponder
+                } else {
+                    item.style.display = 'none'; // Esconde o item se não corresponder
+                }
+            });
+        });
+
+        let currentFolderInfo = {};
+
+        function showFolderActionModal(id, title) {
+            currentFolderInfo = { id, title };
+            folderActionTitle.textContent = title;
+            folderActionModal.classList.remove('hidden');
+            folderActionModal.classList.add('flex');
+        }
+
+        function hideFolderActionModal() {
+            folderActionModal.classList.add('hidden');
+            folderActionModal.classList.remove('flex');
+            currentFolderInfo = {};
+        }
+
+        closeFolderActionModalBtn.addEventListener('click', hideFolderActionModal);
+
+        folderActionOpenBtn.addEventListener('click', () => {
+            showFolderContentModal(currentFolderInfo.id, currentFolderInfo.title);
+            hideFolderActionModal();
+        });
+
+        folderActionEditBtn.addEventListener('click', () => {
+            // Reutiliza o modal de adicionar/editar app
+            showAddAppModal({ id: currentFolderInfo.id, title: currentFolderInfo.title });
+            hideFolderActionModal();
+        });
+
+        folderActionDeleteBtn.addEventListener('click', () => {
+            showDeleteConfirmationModal(currentFolderInfo.id, 'folder', currentFolderInfo.title);
+            hideFolderActionModal();
+        });
+
+        function setupQueueAndPlay(clickedItem, container) {
+            isRandomModeActive = false;
+            historyPast = [];
+            historyFuture = [];
+
+            const allMusicItems = container.querySelectorAll('.music-item[data-src]');
+            currentQueue = Array.from(allMusicItems).map(item => ({...item.dataset}));
+
+            const clickedIndex = Array.from(allMusicItems).findIndex(item => item === clickedItem);
+
+            if (clickedIndex !== -1) {
+                currentQueueIndex = clickedIndex;
+                // Define 'shuffle' como o modo padrão ao iniciar uma playlist
+                repeatMode = 'shuffle';
+                // Atualiza o ícone para refletir o modo padrão imediatamente
+                updateRepeatModeButton();
+                playSong(currentQueue[currentQueueIndex]);
+            }
+        }
+
+        // O listener de clique do player foi consolidado acima para evitar redundância.
+
+        closeExploreModalButton.addEventListener('click', () => {
+            exploreModal.classList.add('hidden');
+            exploreModal.classList.remove('flex');
+
+            // Redefine o estado do modal para a próxima abertura
+            exploreSearchInput.value = '';
+            navigationState = [];
+            updateExploreView(); // Garante que o título e o conteúdo voltem ao padrão
+        });
+
+        editAppButton.addEventListener('click', () => {
+            const isFolder = appActionBar.dataset.isFolder === 'true';
+            // A edição só é permitida para aplicativos, não para pastas.
+            if (isFolder) {
+                hideAppActionBar();
+                return;
+            }
+
+            const appData = {
+                id: appActionBar.dataset.id,
+                title: appActionBar.dataset.title,
+                url: appActionBar.dataset.url,
+                isFixed: appActionBar.dataset.isFixed === 'true',
+                icon_class: appActionBar.dataset.iconClass,
+                bg_color: appActionBar.dataset.bgColor,
+                icon_color: appActionBar.dataset.iconColor
+            };
+
+            hideAppActionBar();
+            showAddAppModal(appData);
+        });
+
+        deleteAppButton.addEventListener('click', async () => {
+            const appId = appActionBar.dataset.id;
+            const isFixed = appActionBar.dataset.isFixed === 'true';
+
+            if (isFixed) {
+                // For fixed apps, we just hide them by adding to removed_apps
+                const user = (await supabase.auth.getUser()).data.user;
+                if (!user) return;
+
+                hideAppActionBar();
+
+                const { data } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
+                const prefs = data?.preferences || {};
+                const removed = prefs.removed_apps || [];
+
+                if (!removed.includes(appId)) {
+                    removed.push(appId);
+                    prefs.removed_apps = removed;
+                    await saveUserPreferences(prefs);
+                    await fetchAndRenderApps(user.id);
+                }
+            } else {
+                // For custom apps, show a confirmation for permanent deletion
+                const appTitle = appActionBar.dataset.title;
+                hideAppActionBar();
+                showDeleteConfirmationModal(appId, 'custom_app_permanent', appTitle);
+            }
+        });
+
+        closeAppModalButton.addEventListener('click', hideAppActionBar);
+
+        saveEditFixedAppButton.addEventListener('click', async () => {
+            const appId = editFixedAppModal.dataset.id;
+            const newName = fixedAppNameInput.value.trim();
+            const user = (await supabase.auth.getUser()).data.user;
+            if (!newName || !user) return;
+
+            const { data } = await supabase.from('profiles').select('preferences').eq('id', user.id).single();
+            const prefs = data?.preferences || {};
+            if (!prefs.app_names) prefs.app_names = {};
+            prefs.app_names[appId] = newName;
+
+            await saveUserPreferences(prefs);
+            await fetchAndRenderApps(user.id);
+            hideEditFixedAppModal();
+        });
+        cancelEditFixedAppButton.addEventListener('click', hideEditFixedAppModal);
+
+        // --- VERIFICAÇÃO DE ESTADO DE AUTENTICAÇÃO E URL ---
+        supabase.auth.onAuthStateChange((event, session) => {
+            if (session) {
+                // Verifica se o URL contém o hash de recuperação de senha
+                const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                const isPasswordRecovery = hashParams.has('type') && hashParams.get('type') === 'recovery';
+
+                // Só inicializa a app por completo se ainda não tiver sido feito para esta sessão.
+                if (!isAppInitialized) {
+                    loadUserProfile(session.user);
+                    loadUserPreferences();
+                    toggleUI(true);
+
+                    // Toca uma música aleatória apenas na primeira inicialização
+                    playRandomSong(true, false);
+
+                    isAppInitialized = true;
+                    // --- Busca a contagem total de musicas ---
+                    fetchAndDisplayTotalSongs();
+                    // --- Configura todas as subscrições em tempo real ---
+                    if (customAppsSubscription) supabase.removeChannel(customAppsSubscription);
+                    customAppsSubscription = supabase.channel('public:custom_apps')
+                        .on('postgres_changes', { event: '*', schema: 'public', table: 'custom_apps', filter: `user_id=eq.${session.user.id}` }, payload => {
+                            fetchAndRenderApps(session.user.id);
+                        })
+                        .subscribe();
+
+                    // --- Busca inicial de dados ---
+                    fetchAndRenderApps(session.user.id);
+
+                    // Se for um fluxo de recuperação de senha, abre o modal.
+                    if (isPasswordRecovery) {
+                        openChangePasswordModal();
+                        // Limpa o hash do URL para não reabrir o modal em um refresh
+                        history.replaceState(null, '', ' ');
+                    }
+                }
+            } else { // Sem sessão ou o usuário saiu
+                isAppInitialized = false; // Reinicia a flag
+
+                // Limpa todas as subscrições para evitar vazamentos de memória
+                if (customAppsSubscription) supabase.removeChannel(customAppsSubscription);
+                customAppsSubscription = null;
+
+                // Determina qual vista mostrar
+                const params = new URLSearchParams(window.location.hash.substring(1));
+                if (params.get('type') === 'recovery') {
+                    toggleUI(false, 'new-password');
+                } else {
+                    toggleUI(false, 'login');
+                }
+            }
+        });
+
+        // Adiciona um listener para o evento beforeunload para pedir confirmação antes de atualizar a página
+        window.addEventListener('beforeunload', function (e) {
+            // Cancela o evento
+            e.preventDefault();
+            // O Chrome exige que returnValue seja definido
+            e.returnValue = '';
+        });
+
+        let totalSongsCount = 0; // Cache para o número total de músicas
+
+        // --- NOVA LÓGICA PARA MÚSICA ALEATÓRIA ---
+        async function playRandomSong(clearHistory = true, autoplay = true) {
+            if (silentAudio.paused) {
+                silentAudio.play().catch(e => console.error("A reprodução do áudio silencioso falhou:", e));
+            }
+
+            isRandomModeActive = true;
+            updateRepeatModeButton();
+
+            if (clearHistory) {
+                historyPast = [];
+                historyFuture = [];
+            }
+
+            // Se a contagem total de músicas ainda não foi obtida, busca no banco
+            if (totalSongsCount === 0) {
+                const { count, error } = await supabase
+                    .from('Musicas')
+                    .select('*', { count: 'exact', head: true });
+
+                if (error) {
+                    console.error('Erro ao contar as músicas:', error);
+                    showNotification('Não foi possível obter o número total de músicas.', 'error');
+                    return;
+                }
+                totalSongsCount = count;
+            }
+
+            if (totalSongsCount === 0) {
+                showNotification('Nenhuma música encontrada no banco de dados.', 'error');
+                return;
+            }
+
+            // Gera um índice aleatório
+            const randomIndex = Math.floor(Math.random() * totalSongsCount);
+
+            // Busca apenas a música na posição aleatória
+            const { data: randomSong, error: fetchError } = await supabase
+                .from('Musicas')
+                .select('*')
+                .range(randomIndex, randomIndex)
+                .single();
+
+            if (fetchError || !randomSong) {
+                console.error('Erro ao buscar música aleatória:', fetchError);
+                showNotification('Não foi possível carregar uma música aleatória.', 'error');
+                return;
+            }
+
+            // Prepara os dados da música para o player
+            const songData = {
+                src: randomSong.Musica,
+                title: randomSong['Nome - Musica'],
+                artist: randomSong['Nome - Artista'],
+                albumArt: randomSong.Imagem,
+                album: randomSong['Nome - Album']
+            };
+
+            // Toca a música usando a nova função centralizada
+            playSong(songData, false, autoplay);
+        }
+
+        // --- Event Listeners para os novos botões FAB ---
+        const fabExploreButton = document.getElementById('fab-explore');
+        const fabRandomSongExploreButton = document.getElementById('fab-random-song-explore');
+
+        fabExploreButton.addEventListener('click', async () => {
+            navigationState = [];
+            exploreModal.classList.remove('hidden');
+            exploreModal.classList.add('flex');
+            await fetchAndDisplayMusic();
+        });
+
+        fabRandomSongExploreButton.addEventListener('click', playRandomSong);
+
+        addToFolderFullscreenBtn.addEventListener('click', () => {
+            if (currentSong) {
+                openAddToFolderModal(currentSong);
+            }
+        });
+
+
+        // Expõe a função para o Playwright
+        window.toggleUI = toggleUI;
+        window.renderApps = renderApps;
+        window.fixedAppsMasterList = fixedAppsMasterList;
+        window.renderArtistSongs = renderArtistSongs;
+        window.renderArtists = renderArtists;
+        window.showFolderContentModal = showFolderContentModal;
+        window.showFolderActionModal = showFolderActionModal;
+        window.fetchAndRenderApps = fetchAndRenderApps;
+        window.playRandomSong = playRandomSong; // Expor para teste
+        window.playSong = playSong;
+        window.showNotification = showNotification; // Expor para teste
+        window.openAddToFolderModal = openAddToFolderModal;
+        window.showMainApp = () => {
+            if (!isAppInitialized) {
+                const mockUser = { id: 'mock-id', email: 'test@test.com' };
+                loadUserProfile(mockUser);
+                loadUserPreferences();
+                toggleUI(true);
+                // playRandomSong(); // Removido para testes controlados
+                isAppInitialized = true;
+                fetchAndRenderApps(mockUser.id);
+            }
+        };
+
+        // Funções expostas adicionalmente para verificação
+        window.showFolderContentModal = showFolderContentModal;
+        window.showDeleteConfirmationModal = showDeleteConfirmationModal;
+        window.fetchAndDisplayLyrics = fetchAndDisplayLyrics;
+        // Adiciona uma função de mock para testes
+        window.mockFetchLyrics = (lyrics) => {
+            const lyricsContainer = document.getElementById('lyrics-container');
+            if (lyricsContainer) {
+                lyricsContainer.textContent = lyrics;
+            }
+        };
+        window.renderFoldersForAdd = (folders) => {
+            modalFolderSelect.innerHTML = '';
+            if (folders && folders.length > 0) {
+                folders.forEach(folder => {
+                    const option = document.createElement('option');
+                    option.value = folder.id;
+                    option.textContent = folder.nome;
+                    modalFolderSelect.appendChild(option);
+                });
+                confirmAddToFolderModalButton.disabled = false;
+            } else {
+                modalFolderSelect.innerHTML = '<option value="">Nenhuma pasta criada</option>';
+                confirmAddToFolderModalButton.disabled = true;
+            }
+        };
+
+    </script>
+
+    <!-- NOVO: Modal para Visualizar Conteúdo da Pasta -->
+    <div id="folder-content-modal" class="fixed top-0 left-0 right-0 bottom-24 hidden flex-col z-40" style="background-color: var(--cor-secundaria);">
+        <header class="p-4 text-white shadow-md space-y-4" style="background-color: #141414;">
+            <div class="flex items-center justify-between">
+                <h2 id="folder-content-title" class="text-2xl font-bold truncate">Nome da Pasta</h2>
+                <button id="close-folder-content-modal" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <input type="search" id="folder-search-input" placeholder="Pesquisar por música ou artista..." class="w-full px-4 py-2 rounded-md bg-gray-700 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </header>
+        <div id="folder-music-list-container" class="flex-grow p-4 overflow-y-auto">
+            <!-- As músicas da pasta serão inseridas aqui -->
+        </div>
+    </div>
+
+    <!-- NOVO: Modal de Ações da Pasta -->
+    <div id="folder-action-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="p-6 rounded-2xl shadow-2xl max-w-xs w-full flex flex-col space-y-4" style="background-color: var(--cor-primaria);">
+            <div class="flex justify-between items-center">
+                <h3 id="folder-action-title" class="text-2xl font-bold text-theme truncate">Nome da Pasta</h3>
+                <button id="close-folder-action-modal" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <button id="folder-action-open" class="w-full px-4 py-3 text-white font-bold rounded-md shadow-lg hover:shadow-xl transition-all text-lg bg-blue-500 hover:bg-blue-600">
+                Abrir
+            </button>
+            <button id="folder-action-edit" class="w-full px-4 py-3 text-white font-bold rounded-md shadow-lg hover:shadow-xl transition-all text-lg bg-yellow-500 hover:bg-yellow-600">
+                Editar
+            </button>
+            <button id="folder-action-delete" class="w-full px-4 py-3 text-white font-bold rounded-md shadow-lg hover:shadow-xl transition-all text-lg bg-red-500 hover:bg-red-600">
+                Excluir
+            </button>
+        </div>
+    </div>
+
+    <!-- NOVO: Player de Música em Tela Cheia -->
+    <div id="fullscreen-player" class="fixed inset-0 hidden flex-col items-center p-4 z-[80] text-theme overflow-y-auto" style="background-color: var(--cor-primaria);">
+        <!-- Botão de Fechar -->
+        <button id="close-fullscreen-player" class="bg-red-500 hover:bg-red-600 text-white rounded-full w-8 h-8 flex items-center justify-center absolute top-4 right-4 z-10">
+            <i class="fas fa-times text-xl"></i>
+        </button>
+
+        <div class="w-full max-w-md text-center pt-12 pb-4">
+            <!-- Arte do Álbum -->
+            <img id="fullscreen-album-art" src="data:image/gif;base64,R0lGODlhAQABAAD/ACwAAAAAAQABAAACADs=" alt="Capa do Álbum" class="w-64 h-64 mx-auto rounded-lg shadow-lg mb-6">
+
+            <!-- Informações da Música -->
+            <h2 id="fullscreen-song-title" class="text-3xl font-bold">Nome da Música</h2>
+            <p id="fullscreen-artist-name" class="text-lg text-gray-400 mb-6">Nome do Artista</p>
+
+            <!-- Barra de Progresso -->
+            <div class="w-full">
+                 <input id="progress-slider" type="range" min="0" max="100" step="1" value="0" class="custom-slider">
+            </div>
+            <div class="flex justify-between text-sm text-gray-400 mb-6 px-1">
+                <span id="current-time">0:00</span>
+                <span id="duration">0:00</span>
+            </div>
+
+            <!-- Controles -->
+            <div id="fullscreen-controls-container" class="flex items-center justify-center">
+                <button id="repeat-mode-btn" class="player-button w-14 h-14">
+                    <i class="fas fa-random text-xl"></i>
+                </button>
+                <button id="prev-btn" class="player-button w-14 h-14">
+                    <i class="fas fa-step-backward text-xl"></i>
+                </button>
+                <button id="play-pause-btn" class="player-button w-14 h-14">
+                    <i class="fas fa-play text-xl"></i>
+                </button>
+                <button id="next-btn" class="player-button w-14 h-14">
+                    <i class="fas fa-step-forward text-xl"></i>
+                </button>
+                <button id="add-to-folder-fullscreen-btn" class="player-button w-14 h-14" style="color: var(--cor-destaque);">
+                    <i class="fas fa-plus text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Controles Adicionais (Volume) -->
+            <div class="w-full max-w-sm mx-auto mt-8 space-y-6">
+                <!-- Volume -->
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-volume-down text-gray-400"></i>
+                    <input id="volume-slider" type="range" min="0" max="1" step="0.01" value="1" class="custom-slider">
+                    <i class="fas fa-volume-up text-gray-400"></i>
+                </div>
+            </div>
+
+            <!-- Letra da Música -->
+            <div id="lyrics-container" class="mt-8 p-3 border border-gray-700 rounded-md whitespace-pre-wrap text-sm text-left">
+                Buscando letra...
+            </div>
+        </div>
+    </div>
+
+    <!-- NOVO: Modal de Notificação Personalizado -->
+    <div id="notification-modal" class="fixed top-5 left-1/2 -translate-x-1/2 bg-green-500 text-white py-3 px-5 rounded-lg shadow-xl hidden transform transition-all duration-300 ease-in-out z-[100]">
+        <p id="notification-message"></p>
+    </div>
+</body>
+</html>
