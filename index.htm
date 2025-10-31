@@ -857,6 +857,9 @@
         let repeatMode = 'shuffle';
         let isRandomModeActive = false;
         let autoSkipTimeout = null;
+        let relatedSongsPage = 1;
+        let isLoadingMoreSongs = false;
+        let relatedSongsSearchTerm = '';
 
         // --- FUNÇÃO DE BUSCA DE LETRAS ATUALIZADA PARA USAR LRCLIB ---
         async function fetchAndDisplayLyrics(artist, title, album, duration) {
@@ -888,6 +891,85 @@
                 console.error('Erro ao buscar a letra na LRCLIB API:', error);
                 lyricsContainer.textContent = 'Ocorreu um erro ao buscar a letra.';
             }
+        }
+
+        // --- LÓGICA PARA MÚSICAS RELACIONADAS ---
+        async function fetchRelatedSongs(currentSong, page = 1) {
+            if (!currentSong || !currentSong.src) {
+                return [];
+            }
+
+            const urlParts = currentSong.src.split('/');
+            relatedSongsSearchTerm = urlParts.length > 2 ? urlParts[urlParts.length - 2] : '';
+
+            let { data, error } = await supabase
+                .from('Musicas')
+                .select('*')
+                .or(`"Nome - Artista".eq.${currentSong.artist},"Nome - Album".eq.${currentSong.album},Musica.ilike.%${relatedSongsSearchTerm}%`)
+                .neq('Musica', currentSong.src) // Exclui a música atual
+                .limit(10)
+                .range((page - 1) * 10, page * 10 - 1);
+
+            if (error) {
+                console.error('Erro ao buscar músicas relacionadas:', error);
+                return [];
+            }
+            return data;
+        }
+
+        function renderRelatedSongItem(song) {
+            const relatedSongsList = document.getElementById('related-songs-list');
+            const songItem = document.createElement('div');
+            songItem.className = 'music-item';
+            songItem.dataset.src = song.Musica;
+            songItem.dataset.title = song['Nome - Musica'];
+            songItem.dataset.artist = song['Nome - Artista'];
+            songItem.dataset.albumArt = song.Imagem;
+            songItem.dataset.album = song['Nome - Album'];
+
+            songItem.innerHTML = `
+                <div class="music-info flex-grow">
+                    <p class="music-artist-display">${song['Nome - Artista'] || 'Artista Desconhecido'}</p>
+                    <p class="music-title-display">${song['Nome - Musica'] || 'Título Desconhecido'}</p>
+                </div>
+            `;
+            songItem.addEventListener('click', () => {
+                playSong({
+                    src: song.Musica,
+                    title: song['Nome - Musica'],
+                    artist: song['Nome - Artista'],
+                    albumArt: song.Imagem,
+                    album: song['Nome - Album']
+                });
+            });
+            relatedSongsList.appendChild(songItem);
+        }
+
+        async function fetchAndDisplayRelatedSongs(song) {
+            relatedSongsPage = 1;
+            isLoadingMoreSongs = false;
+            const relatedSongsList = document.getElementById('related-songs-list');
+            relatedSongsList.innerHTML = 'Buscando sugestões...';
+            const relatedSongs = await fetchRelatedSongs(song, relatedSongsPage);
+            relatedSongsList.innerHTML = '';
+            if (relatedSongs.length > 0) {
+                relatedSongs.forEach(renderRelatedSongItem);
+                relatedSongsPage++;
+            } else {
+                relatedSongsList.innerHTML = 'Nenhuma música relacionada encontrada.';
+            }
+        }
+
+        async function fetchMoreRelatedSongs() {
+            if (isLoadingMoreSongs) return;
+            isLoadingMoreSongs = true;
+
+            const relatedSongs = await fetchRelatedSongs(currentSong, relatedSongsPage);
+            if (relatedSongs.length > 0) {
+                relatedSongs.forEach(renderRelatedSongItem);
+                relatedSongsPage++;
+            }
+            isLoadingMoreSongs = false;
         }
 
         function playSong(songData, fromHistory = false, autoplay = true) {
@@ -2548,6 +2630,21 @@
             fullscreenPlayer.classList.add('flex');
         });
 
+        fullscreenPlayer.addEventListener('scroll', () => {
+            const { scrollTop, scrollHeight, clientHeight } = fullscreenPlayer;
+            if (scrollTop + clientHeight >= scrollHeight - 5) { // Threshold de 5px
+                fetchMoreRelatedSongs();
+            }
+        });
+
+        fullscreenPlayer.addEventListener('transitionend', () => {
+            if (!fullscreenPlayer.classList.contains('hidden')) {
+                if (currentSong) {
+                    fetchAndDisplayRelatedSongs(currentSong);
+                }
+            }
+        });
+
         // Fechar o player em tela cheia
         closeFullscreenPlayerBtn.addEventListener('click', () => {
             fullscreenPlayer.classList.add('hidden');
@@ -3078,6 +3175,12 @@
             <!-- Letra da Música -->
             <div id="lyrics-container" class="mt-8 p-3 border border-gray-700 rounded-md whitespace-pre-wrap text-sm text-left">
                 Buscando letra...
+            </div>
+
+            <!-- Músicas Relacionadas -->
+            <div id="related-songs-container" class="mt-8 p-3 border border-gray-700 rounded-md text-sm text-left">
+                <h3 class="text-xl font-bold mb-3 text-theme">Músicas Relacionadas</h3>
+                <div id="related-songs-list"></div>
             </div>
         </div>
     </div>
