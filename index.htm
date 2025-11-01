@@ -899,22 +899,54 @@
                 return [];
             }
 
-            const urlParts = currentSong.src.split('/');
-            relatedSongsSearchTerm = urlParts.length > 2 ? urlParts[urlParts.length - 2] : '';
+            const limit = 10;
+            const offset = (page - 1) * limit;
 
-            let { data, error } = await supabase
+            // 1. Fetch songs from the same artist
+            let { data: artistSongs, error: artistError } = await supabase
                 .from('Musicas')
                 .select('*')
-                .or(`"Nome - Artista".eq.${currentSong.artist},"Nome - Album".eq.${currentSong.album},Musica.ilike.%${relatedSongsSearchTerm}%`)
-                .neq('Musica', currentSong.src) // Exclui a música atual
-                .limit(10)
-                .range((page - 1) * 10, page * 10 - 1);
+                .eq('"Nome - Artista"', currentSong.artist)
+                .neq('Musica', currentSong.src)
+                .limit(20); // Fetch a bit more to have a good pool
 
-            if (error) {
-                console.error('Erro ao buscar músicas relacionadas:', error);
-                return [];
+            if (artistError) {
+                console.error('Error fetching songs by artist:', artistError);
+                artistSongs = [];
             }
-            return data;
+
+            // Create a Set of song URLs from the artist songs for quick lookup
+            const artistSongUrls = new Set(artistSongs.map(s => s.Musica));
+
+            // 2. Fetch songs with similar URL, if needed
+            let urlSongs = [];
+            const urlParts = currentSong.src.split('/');
+            const searchTerm = urlParts.length > 2 ? urlParts[urlParts.length - 2] : '';
+
+            if (searchTerm) {
+                 let { data: fetchedUrlSongs, error: urlError } = await supabase
+                    .from('Musicas')
+                    .select('*')
+                    .ilike('Musica', `%${searchTerm}%`)
+                    .neq('Musica', currentSong.src)
+                    .limit(20); // Fetch a pool here too
+
+                if (urlError) {
+                    console.error('Error fetching songs by URL:', urlError);
+                } else {
+                    // Filter out songs that are already in the artist list
+                    urlSongs = fetchedUrlSongs.filter(s => !artistSongUrls.has(s.Musica));
+                }
+            }
+
+
+            // 3. Combine the lists: artist songs first, then URL songs
+            const combinedSongs = [...artistSongs, ...urlSongs];
+
+            // 4. Paginate the final list
+            const paginatedSongs = combinedSongs.slice(offset, offset + limit);
+
+            return paginatedSongs;
         }
 
         function renderRelatedSongItem(song) {
