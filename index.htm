@@ -894,21 +894,20 @@
         }
 
         // --- LÓGICA PARA MÚSICAS RELACIONADAS ---
-        async function fetchRelatedSongs(currentSong, page = 1) {
+        let fullRelatedSongsList = [];
+        const RELATED_SONGS_PAGE_SIZE = 10;
+
+        async function _fetchAllRelatedSongs(currentSong) {
             if (!currentSong || !currentSong.src) {
                 return [];
             }
-
-            const limit = 10;
-            const offset = (page - 1) * limit;
 
             // 1. Fetch songs from the same artist
             let { data: artistSongs, error: artistError } = await supabase
                 .from('Musicas')
                 .select('*')
                 .eq('"Nome - Artista"', currentSong.artist)
-                .neq('Musica', currentSong.src)
-                .limit(20); // Fetch a bit more to have a good pool
+                .neq('Musica', currentSong.src);
 
             if (artistError) {
                 console.error('Error fetching songs by artist:', artistError);
@@ -928,8 +927,7 @@
                     .from('Musicas')
                     .select('*')
                     .ilike('Musica', `%${searchTerm}%`)
-                    .neq('Musica', currentSong.src)
-                    .limit(20); // Fetch a pool here too
+                    .neq('Musica', currentSong.src);
 
                 if (urlError) {
                     console.error('Error fetching songs by URL:', urlError);
@@ -939,14 +937,13 @@
                 }
             }
 
-
             // 3. Combine the lists: artist songs first, then URL songs
-            const combinedSongs = [...artistSongs, ...urlSongs];
+            return [...artistSongs, ...urlSongs];
+        }
 
-            // 4. Paginate the final list
-            const paginatedSongs = combinedSongs.slice(offset, offset + limit);
-
-            return paginatedSongs;
+        function fetchRelatedSongsPage(page = 1) {
+            const offset = (page - 1) * RELATED_SONGS_PAGE_SIZE;
+            return fullRelatedSongsList.slice(offset, offset + RELATED_SONGS_PAGE_SIZE);
         }
 
         function renderRelatedSongItem(song) {
@@ -983,7 +980,12 @@
             isLoadingMoreSongs = false;
             const relatedSongsList = document.getElementById('related-songs-list');
             relatedSongsList.innerHTML = 'Buscando sugestões...';
-            const relatedSongs = await fetchRelatedSongs(song, relatedSongsPage);
+
+            // Fetch all songs once and cache them
+            fullRelatedSongsList = await _fetchAllRelatedSongs(song);
+
+            const relatedSongs = fetchRelatedSongsPage(relatedSongsPage);
+
             relatedSongsList.innerHTML = '';
             if (relatedSongs.length > 0) {
                 relatedSongs.forEach(renderRelatedSongItem);
@@ -995,9 +997,17 @@
 
         async function fetchMoreRelatedSongs() {
             if (isLoadingMoreSongs) return;
+
+            // Check if there are more songs to load from the cache
+            const currentLoadedCount = (relatedSongsPage - 1) * RELATED_SONGS_PAGE_SIZE;
+            if (currentLoadedCount >= fullRelatedSongsList.length && fullRelatedSongsList.length > 0) {
+                 return;
+            }
+
             isLoadingMoreSongs = true;
 
-            const relatedSongs = await fetchRelatedSongs(currentSong, relatedSongsPage);
+            const relatedSongs = fetchRelatedSongsPage(relatedSongsPage);
+
             if (relatedSongs.length > 0) {
                 relatedSongs.forEach(renderRelatedSongItem);
                 relatedSongsPage++;
