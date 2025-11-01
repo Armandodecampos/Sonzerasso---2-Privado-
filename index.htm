@@ -941,6 +941,7 @@
                     albumArt: song.Imagem,
                     album: song['Nome - Album']
                 });
+                fullscreenPlayer.scrollTo({ top: 0, behavior: 'smooth' });
             });
             relatedSongsList.appendChild(songItem);
         }
@@ -1038,6 +1039,10 @@
                     showNotification('A música demorou para carregar e foi pulada.', 'error');
                     playNextSong(!wasPaused); // Se estava pausado, não toca a próxima automaticamente
                 }, 20000);
+            }
+
+            if (!fullscreenPlayer.classList.contains('hidden')) {
+                fetchAndDisplayRelatedSongs(songData);
             }
         }
 
