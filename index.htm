@@ -1041,9 +1041,6 @@
                 }, 20000);
             }
 
-            if (!fullscreenPlayer.classList.contains('hidden')) {
-                fetchAndDisplayRelatedSongs(songData);
-            }
         }
 
         async function playNextSong(autoplay = true) {
@@ -2707,6 +2704,9 @@
             if (currentSong) {
                 const durationInSeconds = Math.round(playerAudio.duration);
                 fetchAndDisplayLyrics(currentSong.artist, currentSong.title, currentSong.album, durationInSeconds);
+                if (!fullscreenPlayer.classList.contains('hidden')) {
+                    fetchAndDisplayRelatedSongs(currentSong);
+                }
             }
         });
 
