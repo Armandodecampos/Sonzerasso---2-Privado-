@@ -584,9 +584,14 @@
             <h3 class="text-2xl font-bold text-center text-theme">Adicionar à Pasta</h3>
             <div class="relative">
                 <label for="modal-folder-select" class="block text-sm font-medium text-left text-theme">Selecione a Pasta</label>
-                <select id="modal-folder-select" class="mt-1 block w-full px-4 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" style="background-color: var(--cor-secundaria); border-color: var(--cor-destaque); color: var(--cor-texto);">
-                    <!-- Opções de pasta serão preenchidas aqui -->
-                </select>
+                <div class="flex items-center space-x-2 mt-1">
+                    <select id="modal-folder-select" class="block w-full px-4 py-2 border rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500" style="background-color: var(--cor-secundaria); border-color: var(--cor-destaque); color: var(--cor-texto);">
+                        <!-- Opções de pasta serão preenchidas aqui -->
+                    </select>
+                    <button id="create-new-folder-button" class="p-2 rounded-md hover:brightness-90 flex-shrink-0" style="background-color: var(--cor-destaque);" title="Criar Nova Pasta">
+                        <i class="fas fa-folder-plus text-lg text-black"></i>
+                    </button>
+                </div>
             </div>
             <div class="flex justify-between space-x-4 pt-2">
                 <button id="cancel-add-to-folder-modal-button" class="w-full px-4 py-3 font-semibold rounded-md hover:brightness-90" style="background-color: var(--cor-secundaria); color: var(--cor-texto);">Cancelar</button>
@@ -2263,11 +2268,15 @@
             }
         });
 
-        cancelAddToFolderModalButton.addEventListener('click', () => {
+        function hideAddToFolderModal() {
             addToFolderModal.classList.add('hidden');
             addToFolderModal.classList.remove('flex');
-            songDataForModal = null; // Limpa os dados da música
             confirmAddToFolderModalButton.disabled = false; // Garante que o botão seja reativado
+        }
+
+        cancelAddToFolderModalButton.addEventListener('click', () => {
+            hideAddToFolderModal();
+            songDataForModal = null; // Limpa os dados da música ao cancelar
         });
 
         confirmAddToFolderModalButton.addEventListener('click', async () => {
@@ -2451,6 +2460,15 @@
             addAppModal.classList.remove('flex');
             addAppModal.removeAttribute('data-edit-id');
             appTitleInput.value = '';
+
+            // Se o usuário estava criando uma pasta a partir do fluxo de adicionar música,
+            // reabra o modal de adicionar à pasta.
+            if (isCreatingFolderForSong) {
+                isCreatingFolderForSong = false;
+                if (songDataForModal) {
+                    openAddToFolderModal(songDataForModal);
+                }
+            }
         }
 
         async function saveDetails() {
@@ -2773,6 +2791,17 @@
 
 
         // --- FUNÇÕES DE CONTROLE DE REPRODUÇÃO E FILA ---
+
+        // --- NOVO: Lógica para o botão de criar pasta no modal ---
+        const createNewFolderButton = document.getElementById('create-new-folder-button');
+        let isCreatingFolderForSong = false;
+
+        createNewFolderButton.addEventListener('click', () => {
+            isCreatingFolderForSong = true;
+            hideAddToFolderModal();
+            showAddAppModal(); // Reutiliza o modal existente para criar pastas
+        });
+
         // --- NOVO: Lógica para o Modal de Ações da Pasta ---
         // --- NOVO: Lógica de Pesquisa na Pasta ---
         folderSearchInput.addEventListener('input', (e) => {
