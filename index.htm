@@ -2702,6 +2702,15 @@
             }
         });
 
+        playerAudio.addEventListener('error', () => {
+            if (autoSkipTimeout) {
+                clearTimeout(autoSkipTimeout);
+                autoSkipTimeout = null;
+            }
+            showNotification('Não foi possível carregar a música. Pulando para a próxima.', 'error');
+            playNextSong();
+        });
+
         fullscreenPlayer.addEventListener('transitionend', () => {
             if (!fullscreenPlayer.classList.contains('hidden')) {
                 if (currentSong) {
@@ -2717,7 +2726,7 @@
         });
 
         // Sincronização dos controles personalizados
-        playerAudio.addEventListener('playing', () => {
+        playerAudio.addEventListener('canplay', () => {
             if (autoSkipTimeout) {
                 clearTimeout(autoSkipTimeout);
                 autoSkipTimeout = null;
