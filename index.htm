@@ -485,6 +485,12 @@
                 </label>
             </div>
 
+            <!-- NOVO: Campo para definir o tempo de espera -->
+            <div id="auto-skip-time-container" class="items-center justify-between pt-2 text-left">
+                <label for="auto-skip-time-input" class="text-sm font-medium text-theme">Tempo para pular (segundos)</label>
+                <input type="number" id="auto-skip-time-input" min="5" max="60" class="mt-1 block w-full px-4 py-3 border rounded-md shadow-sm text-lg" style="background-color: var(--cor-secundaria); border-color: var(--cor-destaque); color: var(--cor-texto);" placeholder="20">
+            </div>
+
             <button id="logout-button" class="w-full px-4 py-3 bg-red-500 text-white font-semibold rounded-md hover:bg-red-600 transition-colors">
                 Sair
             </button>
@@ -783,6 +789,8 @@
         const cancelMoveButton = document.getElementById('cancel-move-button');
 
         const autoSkipToggle = document.getElementById('auto-skip-toggle');
+        const autoSkipTimeContainer = document.getElementById('auto-skip-time-container');
+        const autoSkipTimeInput = document.getElementById('auto-skip-time-input');
         const buttonGridContainer = document.getElementById('button-grid-container');
         const mainHeader = document.getElementById('main-header');
 
@@ -1084,13 +1092,13 @@
             // --- FIM DA INTEGRAÇÃO ---
 
             if (currentUserPreferences.autoSkip !== false) {
+                const skipTime = (currentUserPreferences.autoSkipTime || 20) * 1000;
                 autoSkipTimeout = setTimeout(() => {
                     const wasPaused = playerAudio.paused;
                     showNotification('A música demorou para carregar e foi pulada.', 'error');
-                    playNextSong(!wasPaused); // Se estava pausado, não toca a próxima automaticamente
-                }, 20000);
+                    playNextSong(!wasPaused);
+                }, skipTime);
             }
-
         }
 
         async function playNextSong(autoplay = true) {
@@ -1415,8 +1423,11 @@
                 currentUserPreferences = {}; // Define um padrão
             }
 
-            // Aplica a preferência de autoSkip ao toggle
-            autoSkipToggle.checked = currentUserPreferences.autoSkip !== false;
+            // Aplica as preferências aos elementos da UI
+            const autoSkip = currentUserPreferences.autoSkip !== false;
+            autoSkipToggle.checked = autoSkip;
+            autoSkipTimeContainer.style.display = autoSkip ? 'block' : 'none';
+            autoSkipTimeInput.value = currentUserPreferences.autoSkipTime || 20;
         }
 
 
@@ -1721,7 +1732,21 @@
         // --- EVENTOS DO MODAL DE CONFIGURAÇÕES ---
 
         autoSkipToggle.addEventListener('change', async (e) => {
-            currentUserPreferences.autoSkip = e.target.checked;
+            const isEnabled = e.target.checked;
+            currentUserPreferences.autoSkip = isEnabled;
+            autoSkipTimeContainer.style.display = isEnabled ? 'block' : 'none';
+            await saveUserPreferences(currentUserPreferences);
+        });
+
+        autoSkipTimeInput.addEventListener('change', async (e) => {
+            let time = parseInt(e.target.value, 10);
+            if (isNaN(time) || time < 5) {
+                time = 5;
+            } else if (time > 60) {
+                time = 60;
+            }
+            e.target.value = time; // Corrige o valor na UI
+            currentUserPreferences.autoSkipTime = time;
             await saveUserPreferences(currentUserPreferences);
         });
 
